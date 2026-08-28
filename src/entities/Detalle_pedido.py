@@ -7,7 +7,7 @@ class DetallePedido:
     def __init__(
         self,
         id_pedido: uuid.UUID,
-        id_producto: uuid.UUID,
+        id_plato: uuid.UUID,
         cantidad: int,
         precio_unitario: float,
         id_usuario_creacion: uuid.UUID,
@@ -18,7 +18,7 @@ class DetallePedido:
         # ID que relacionan este detalle
         # con el pedido y el producto correspondiente
         self.id_pedido = id_pedido
-        self.id_producto = id_producto
+        self.id_plato = id_plato
 
         self.cantidad = cantidad
         self.precio_unitario = precio_unitario

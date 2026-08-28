@@ -7,9 +7,12 @@ class Pedido:
     def __init__(
         self,
         id_empleado: uuid.UUID,
+        # es obligatorio id_cliente ya que todo pedido pertenece a un cliente
+        id_cliente: uuid.UUID,
         estado: str,
         total: float,
         id_usuario_creacion: uuid.UUID,
+        id_mesa: Optional[uuid.UUID] = None,
     ) -> None:
         # Genera automáticamente el ID del pedido
         self.id_pedido: uuid.UUID = uuid.uuid4()
@@ -17,6 +20,8 @@ class Pedido:
         # Guarda el empleado que tomó el pedido
         self.id_empleado = id_empleado
 
+        self.id_cliente = id_cliente
+        self.id_mesa = id_mesa
         self.estado = estado.strip()
         self.total = total
 
@@ -45,7 +50,9 @@ class Pedido:
         Devuelve una representación del pedido
         cuando se imprime el objeto.
         """
+        mesa_texto = str(self.id_mesa) if self.id_mesa else "Domicilio"
         return (
             f"Pedido({self.id_pedido}) - "
+            f"Cliente: {self.id_cliente} / Mesa: {mesa_texto} / "
             f"Estado: {self.estado} / Total: ${self.total:.2f}"
         )
