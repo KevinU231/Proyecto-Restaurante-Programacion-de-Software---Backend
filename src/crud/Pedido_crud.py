@@ -10,18 +10,22 @@ class PedidoCRUD:
     def crear(
         self,
         id_empleado: uuid.UUID,
+        id_cliente: uuid.UUID,
         estado: str,
         total: float,
         id_usuario_creacion: uuid.UUID,
+        id_mesa: uuid.UUID = None,
     ) -> Pedido:
         """
         Crea un nuevo pedido y lo agrega a la lista.
         """
         pedido = Pedido(
             id_empleado=id_empleado,
+            id_cliente=id_cliente,
             estado=estado,
             total=total,
             id_usuario_creacion=id_usuario_creacion,
+            id_mesa=id_mesa,
         )
 
         self.pedidos.append(pedido)
@@ -48,6 +52,8 @@ class PedidoCRUD:
         id_pedido: uuid.UUID,
         id_usuario_edicion: uuid.UUID,
         id_empleado: uuid.UUID | None = None,
+        id_cliente: uuid.UUID | None = None,
+        id_mesa: uuid.UUID | None = None,
         estado: str | None = None,
         total: float | None = None,
     ) -> Pedido | None:
@@ -61,6 +67,12 @@ class PedidoCRUD:
 
         if id_empleado is not None:
             pedido.id_empleado = id_empleado
+
+        if id_cliente is not None:
+            pedido.id_cliente = id_cliente
+
+        if id_mesa is not None:
+            pedido.id_mesa = id_mesa
 
         if estado is not None:
             pedido.estado = estado.strip()

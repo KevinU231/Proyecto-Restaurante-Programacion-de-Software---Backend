@@ -4,11 +4,15 @@ from src.crud.Pedido_crud import PedidoCRUD
 from src.crud.Detalle_Pedido_crud import DetallePedidoCRUD
 from src.crud.Factura_crud import FacturaCRUD
 
+from src.crud import usuario_crud, cliente_crud, mesa_crud, reserva_crud
+
 # INSTANCIAS DE LOS CRUD
 empleado_crud = EmpleadoCRUD()
 pedido_crud = PedidoCRUD()
 detalle_crud = DetallePedidoCRUD()
 factura_crud = FacturaCRUD()
+
+usuario_actual = None
 
 
 # solicita un UUID al usuario y verifica que sea válido
@@ -23,6 +27,63 @@ def obtener_uuid(mensaje):
             print("El ID ingresado no es válido.")
 
 
+def cargar_datos_semilla():
+    """
+    Crea el primer empleado y usuario administrador del sistema.
+    Rompe la dependencia circular: sin un usuario no hay login,
+    y sin login no se puede crear un usuario. id_usuario_creacion
+    queda en None solo aquí, porque nadie más existía todavía
+    para haber creado este primer registro.
+    """
+    admin_empleado = empleado_crud.crear(
+        nombre="Administrador",
+        telefono="3000000000",
+        correo="admin@restaurante.com",
+        cargo="admin",
+        id_usuario_creacion=None,
+    )
+    usuario_crud.crear_usuario(
+        nombre_usuario="admin",
+        primer_nombre="Administrador",
+        segundo_nombre="",
+        primer_apellido="Sistema",
+        segundo_apellido="",
+        clave="admin123",
+        id_empleado=admin_empleado.id_empleado,
+        id_usuario_creacion=None,
+    )
+    print("Datos semilla cargados. Usuario inicial -> usuario: admin | clave: admin123")
+
+
+def pantalla_login():
+    """
+    Pide usuario y clave hasta que el login sea correcto.
+    Guarda el usuario logueado en usuario_actual (variable global),
+    que luego se usa automáticamente en todo el programa para las
+    columnas de auditoría (id_usuario_creacion / id_usuario_edicion).
+    """
+    global usuario_actual
+    print("\n=== SISTEMA DE GESTIÓN - RESTAURANTE ===")
+    while usuario_actual is None:
+        print("\n1. Iniciar sesión")
+        print("2. Salir")
+        opcion = input("Seleccione una opción: ").strip()
+        if opcion == "1":
+            nombre_usuario = input("Usuario: ").strip()
+            clave = input("Clave: ").strip()
+            encontrado = usuario_crud.iniciar_sesion(nombre_usuario, clave)
+            if encontrado:
+                usuario_actual = encontrado
+                print(f"\nBienvenido, {encontrado.nombre_completo()}.")
+            else:
+                print("Usuario o clave incorrectos.")
+        elif opcion == "2":
+            print("Hasta pronto.")
+            raise SystemExit
+        else:
+            print("Opción no válida.")
+
+
 # EMPLEADOS
 def crear_empleado():
     """
@@ -34,15 +95,12 @@ def crear_empleado():
     telefono = input("Teléfono: ")
     correo = input("Correo: ")
     cargo = input("Cargo: ")
-
-    id_usuario = obtener_uuid("ID del usuario que crea el empleado: ")
-
     empleado = empleado_crud.crear(
         nombre=nombre,
         telefono=telefono,
         correo=correo,
         cargo=cargo,
-        id_usuario_creacion=id_usuario,
+        id_usuario_creacion=usuario_actual.id_usuario,
     )
 
     print("\nEmpleado creado correctamente.")
@@ -85,31 +143,23 @@ def actualizar_empleado():
     Actualiza los datos de un empleado.
     """
     id_empleado = obtener_uuid("ID del empleado a actualizar: ")
-
     empleado = empleado_crud.obtener(id_empleado)
-
     if empleado is None:
         print("\nEmpleado no encontrado.")
         return
-
-    id_usuario = obtener_uuid("ID del usuario que realiza la edición: ")
-
     print("\nDeje vacío un campo si no desea modificarlo.")
-
     nombre = input("Nuevo nombre: ").strip()
     telefono = input("Nuevo teléfono: ").strip()
     correo = input("Nuevo correo: ").strip()
     cargo = input("Nuevo cargo: ").strip()
-
     empleado = empleado_crud.actualizar(
         id_empleado=id_empleado,
-        id_usuario_edicion=id_usuario,
+        id_usuario_edicion=usuario_actual.id_usuario,
         nombre=nombre if nombre else None,
         telefono=telefono if telefono else None,
         correo=correo if correo else None,
         cargo=cargo if cargo else None,
     )
-
     print("\nEmpleado actualizado.")
     print(empleado)
 
@@ -134,23 +184,33 @@ def crear_pedido():
     print("\n--- CREAR PEDIDO ---")
 
     id_empleado = obtener_uuid("ID del empleado que tomó el pedido: ")
-
     if empleado_crud.obtener(id_empleado) is None:
         print("\nEl empleado no existe.")
         return
 
+    id_cliente = obtener_uuid("ID del cliente: ")
+    if cliente_crud.buscar_cliente(id_cliente) is None:
+        print("\nEl cliente no existe.")
+        return
+
+    es_domicilio = input("¿Es domicilio? (si/no): ").strip().lower()
+    id_mesa = None
+    if es_domicilio != "si":
+        id_mesa = obtener_uuid("ID de la mesa: ")
+        if mesa_crud.buscar_mesa(id_mesa) is None:
+            print("\nLa mesa no existe.")
+            return
+
     estado = input("Estado del pedido: ")
     total = float(input("Total del pedido: "))
-
-    id_usuario = obtener_uuid("ID del usuario que crea el pedido: ")
-
     pedido = pedido_crud.crear(
         id_empleado=id_empleado,
+        id_cliente=id_cliente,
+        id_mesa=id_mesa,
         estado=estado,
         total=total,
-        id_usuario_creacion=id_usuario,
+        id_usuario_creacion=usuario_actual.id_usuario,
     )
-
     print("\nPedido creado correctamente.")
     print(pedido)
 
@@ -197,23 +257,18 @@ def actualizar_pedido():
     if pedido is None:
         print("\nPedido no encontrado.")
         return
-
-    id_usuario = obtener_uuid("ID del usuario que realiza la edición: ")
-
     print("\nDeje vacío un campo si no desea modificarlo.")
 
     estado = input("Nuevo estado: ").strip()
     total_texto = input("Nuevo total: ").strip()
-
     total = float(total_texto) if total_texto else None
 
     pedido = pedido_crud.actualizar(
         id_pedido=id_pedido,
-        id_usuario_edicion=id_usuario,
+        id_usuario_edicion=usuario_actual.id_usuario,
         estado=estado if estado else None,
         total=total,
     )
-
     print("\nPedido actualizado.")
     print(pedido)
 
@@ -242,20 +297,17 @@ def crear_detalle():
     if pedido_crud.obtener(id_pedido) is None:
         print("\nEl pedido no existe.")
         return
-
     id_producto = obtener_uuid("ID del producto: ")
 
     cantidad = int(input("Cantidad: "))
     precio_unitario = float(input("Precio unitario: "))
-
-    id_usuario = obtener_uuid("ID del usuario que crea el detalle: ")
 
     detalle = detalle_crud.crear(
         id_pedido=id_pedido,
         id_producto=id_producto,
         cantidad=cantidad,
         precio_unitario=precio_unitario,
-        id_usuario_creacion=id_usuario,
+        id_usuario_creacion=usuario_actual.id_usuario,
     )
 
     print("\nDetalle creado correctamente.")
@@ -323,8 +375,6 @@ def actualizar_detalle():
         print("\nDetalle no encontrado.")
         return
 
-    id_usuario = obtener_uuid("ID del usuario que realiza la edición: ")
-
     print("\nDeje vacío un campo si no desea modificarlo.")
 
     cantidad_texto = input("Nueva cantidad: ").strip()
@@ -333,10 +383,9 @@ def actualizar_detalle():
     cantidad = int(cantidad_texto) if cantidad_texto else None
 
     precio_unitario = float(precio_texto) if precio_texto else None
-
     detalle = detalle_crud.actualizar(
         id_detalle_pedido=id_detalle,
-        id_usuario_edicion=id_usuario,
+        id_usuario_edicion=usuario_actual.id_usuario,
         cantidad=cantidad,
         precio_unitario=precio_unitario,
     )
@@ -369,17 +418,14 @@ def crear_factura():
     if pedido_crud.obtener(id_pedido) is None:
         print("\nEl pedido no existe.")
         return
-
     metodo_pago = input("Método de pago: ")
+
     total = float(input("Total de la factura: "))
-
-    id_usuario = obtener_uuid("ID del usuario que crea la factura: ")
-
     factura = factura_crud.crear(
         id_pedido=id_pedido,
         metodo_pago=metodo_pago,
         total=total,
-        id_usuario_creacion=id_usuario,
+        id_usuario_creacion=usuario_actual.id_usuario,
     )
 
     print("\nFactura creada correctamente.")
@@ -442,8 +488,6 @@ def actualizar_factura():
     if factura is None:
         print("\nFactura no encontrada.")
         return
-    id_usuario = obtener_uuid("ID del usuario que realiza la edición: ")
-
     print("\nDeje vacío un campo si no desea modificarlo.")
 
     metodo_pago = input("Nuevo método de pago: ").strip()
@@ -454,7 +498,7 @@ def actualizar_factura():
 
     factura = factura_crud.actualizar(
         id_factura=id_factura,
-        id_usuario_edicion=id_usuario,
+        id_usuario_edicion=usuario_actual.id_usuario,
         metodo_pago=(metodo_pago if metodo_pago else None),
         total=total,
     )
@@ -474,6 +518,243 @@ def eliminar_factura():
         print("\nFactura no encontrada.")
 
 
+# USUARIOS
+def crear_usuario():
+    print("\n--- CREAR USUARIO ---")
+    nombre_usuario = input("Nombre de usuario: ").strip()
+    primer_nombre = input("Primer nombre: ").strip()
+    segundo_nombre = input("Segundo nombre (Enter si no tiene): ").strip()
+    primer_apellido = input("Primer apellido: ").strip()
+    segundo_apellido = input("Segundo apellido (Enter si no tiene): ").strip()
+    clave = input("Clave: ").strip()
+    id_empleado = obtener_uuid("ID del empleado dueño del usuario: ")
+    usuario = usuario_crud.crear_usuario(
+        nombre_usuario,
+        primer_nombre,
+        segundo_nombre,
+        primer_apellido,
+        segundo_apellido,
+        clave,
+        id_empleado,
+        usuario_actual.id_usuario,
+    )
+    print("\nUsuario creado correctamente.")
+    print(usuario)
+
+
+def listar_usuarios():
+    usuarios = usuario_crud.listar_usuarios()
+    print("\n--- USUARIOS ---")
+    if not usuarios:
+        print("No hay usuarios registrados.")
+        return
+    for usuario in usuarios:
+        print(usuario)
+
+
+def buscar_usuario():
+    id_usuario = obtener_uuid("ID del usuario: ")
+    usuario = usuario_crud.buscar_usuario(id_usuario)
+    if usuario:
+        print("\n--- USUARIO ENCONTRADO ---")
+        print(usuario)
+    else:
+        print("\nUsuario no encontrado.")
+
+
+def actualizar_usuario():
+    id_usuario = obtener_uuid("ID del usuario a actualizar: ")
+    if usuario_crud.buscar_usuario(id_usuario) is None:
+        print("\nUsuario no encontrado.")
+        return
+    print("\nDeje vacío un campo si no desea modificarlo.")
+    primer_nombre = input("Nuevo primer nombre: ").strip()
+    clave = input("Nueva clave: ").strip()
+    usuario = usuario_crud.actualizar_usuario(
+        id_usuario,
+        usuario_actual.id_usuario,
+        primer_nombre=primer_nombre if primer_nombre else None,
+        clave=clave if clave else None,
+    )
+    print("\nUsuario actualizado.")
+    print(usuario)
+
+
+def eliminar_usuario():
+    id_usuario = obtener_uuid("ID del usuario a eliminar: ")
+    if usuario_crud.eliminar_usuario(id_usuario):
+        print("\nUsuario eliminado correctamente.")
+    else:
+        print("\nUsuario no encontrado.")
+
+
+# CLIENTES
+def crear_cliente():
+    print("\n--- CREAR CLIENTE ---")
+    nombre = input("Nombre: ").strip()
+    telefono = input("Teléfono: ").strip()
+    correo = input("Correo: ").strip()
+    direccion = input("Dirección: ").strip()
+    cliente = cliente_crud.crear_cliente(
+        nombre, telefono, correo, usuario_actual.id_usuario, direccion
+    )
+    print("\nCliente creado correctamente.")
+    print(cliente)
+
+
+def listar_clientes():
+    clientes = cliente_crud.listar_clientes()
+    print("\n--- CLIENTES ---")
+    if not clientes:
+        print("No hay clientes registrados.")
+        return
+    for cliente in clientes:
+        print(cliente)
+
+
+def buscar_cliente():
+    id_cliente = obtener_uuid("ID del cliente: ")
+    cliente = cliente_crud.buscar_cliente(id_cliente)
+    if cliente:
+        print("\n--- CLIENTE ENCONTRADO ---")
+        print(cliente)
+    else:
+        print("\nCliente no encontrado.")
+
+
+def actualizar_cliente():
+    id_cliente = obtener_uuid("ID del cliente a actualizar: ")
+    if cliente_crud.buscar_cliente(id_cliente) is None:
+        print("\nCliente no encontrado.")
+        return
+    print("\nDeje vacío un campo si no desea modificarlo.")
+    nombre = input("Nuevo nombre: ").strip()
+    telefono = input("Nuevo teléfono: ").strip()
+    cliente = cliente_crud.actualizar_cliente(
+        id_cliente,
+        usuario_actual.id_usuario,
+        nombre if nombre else None,
+        telefono if telefono else None,
+    )
+    print("\nCliente actualizado.")
+    print(cliente)
+
+
+def eliminar_cliente():
+    id_cliente = obtener_uuid("ID del cliente a eliminar: ")
+    if cliente_crud.eliminar_cliente(id_cliente):
+        print("\nCliente eliminado correctamente.")
+    else:
+        print("\nCliente no encontrado.")
+
+
+# MESAS
+def crear_mesa():
+    print("\n--- CREAR MESA ---")
+    numero = int(input("Número de mesa: "))
+    capacidad = int(input("Capacidad: "))
+    mesa = mesa_crud.crear_mesa(numero, capacidad, usuario_actual.id_usuario)
+    print("\nMesa creada correctamente.")
+    print(mesa)
+
+
+def listar_mesas():
+    mesas = mesa_crud.listar_mesas()
+    print("\n--- MESAS ---")
+    if not mesas:
+        print("No hay mesas registradas.")
+        return
+    for mesa in mesas:
+        print(mesa)
+
+
+def buscar_mesa():
+    id_mesa = obtener_uuid("ID de la mesa: ")
+    mesa = mesa_crud.buscar_mesa(id_mesa)
+    if mesa:
+        print("\n--- MESA ENCONTRADA ---")
+        print(mesa)
+    else:
+        print("\nMesa no encontrada.")
+
+
+def actualizar_mesa():
+    id_mesa = obtener_uuid("ID de la mesa a actualizar: ")
+    if mesa_crud.buscar_mesa(id_mesa) is None:
+        print("\nMesa no encontrada.")
+        return
+    estado = input("Nuevo estado (libre/ocupada/reservada): ").strip()
+    mesa = mesa_crud.actualizar_mesa(
+        id_mesa, usuario_actual.id_usuario, estado=estado if estado else None
+    )
+    print("\nMesa actualizada.")
+    print(mesa)
+
+
+def eliminar_mesa():
+    id_mesa = obtener_uuid("ID de la mesa a eliminar: ")
+    if mesa_crud.eliminar_mesa(id_mesa):
+        print("\nMesa eliminada correctamente.")
+    else:
+        print("\nMesa no encontrada.")
+
+
+# RESERVAS
+def crear_reserva():
+    print("\n--- CREAR RESERVA ---")
+    id_cliente = obtener_uuid("ID del cliente: ")
+    id_mesa = obtener_uuid("ID de la mesa: ")
+    fecha = input("Fecha (AAAA-MM-DD): ").strip()
+    hora = input("Hora (HH:MM): ").strip()
+    num_personas = int(input("Número de personas: "))
+    reserva = reserva_crud.crear_reserva(
+        id_cliente, id_mesa, fecha, hora, num_personas, usuario_actual.id_usuario
+    )
+    print("\nReserva creada correctamente.")
+    print(reserva)
+
+
+def listar_reservas():
+    reservas = reserva_crud.listar_reservas()
+    print("\n--- RESERVAS ---")
+    if not reservas:
+        print("No hay reservas registradas.")
+        return
+    for reserva in reservas:
+        print(reserva)
+
+
+def buscar_reserva():
+    id_reserva = obtener_uuid("ID de la reserva: ")
+    reserva = reserva_crud.buscar_reserva(id_reserva)
+    if reserva:
+        print("\n--- RESERVA ENCONTRADA ---")
+        print(reserva)
+    else:
+        print("\nReserva no encontrada.")
+
+
+def actualizar_reserva():
+    id_reserva = obtener_uuid("ID de la reserva a actualizar: ")
+    if reserva_crud.buscar_reserva(id_reserva) is None:
+        print("\nReserva no encontrada.")
+        return
+    estado = input("Nuevo estado (confirmada/cancelada/cumplida): ").strip()
+    reserva = reserva_crud.actualizar_reserva(
+        id_reserva, usuario_actual.id_usuario, estado=estado if estado else None
+    )
+    print("\nReserva actualizada.")
+    print(reserva)
+
+
+def eliminar_reserva():
+    id_reserva = obtener_uuid("ID de la reserva a eliminar: ")
+    if reserva_crud.eliminar_reserva(id_reserva):
+        print("\nReserva eliminada correctamente.")
+    else:
+        print("\nReserva no encontrada.")
+
+
 # MENÚ PRINCIPAL
 def menu_principal():
     """
@@ -482,21 +763,18 @@ def menu_principal():
     """
     while True:
         print("RESTAURANTE - MENÚ PRINCIPAL")
-
         print("\n              EMPLEADOS")
         print("1. Crear empleado")
         print("2. Listar empleados")
         print("3. Buscar empleado")
         print("4. Actualizar empleado")
         print("5. Eliminar empleado")
-
         print("\n              PEDIDOS")
         print("6. Crear pedido")
         print("7. Listar pedidos")
         print("8. Buscar pedido")
         print("9. Actualizar pedido")
         print("10. Eliminar pedido")
-
         print("\n         DETALLES DE PEDIDO")
         print("11. Crear detalle")
         print("12. Listar detalles")
@@ -504,7 +782,6 @@ def menu_principal():
         print("14. Listar detalles por pedido")
         print("15. Actualizar detalle")
         print("16. Eliminar detalle")
-
         print("\n              FACTURAS")
         print("17. Crear factura")
         print("18. Listar facturas")
@@ -512,85 +789,89 @@ def menu_principal():
         print("20. Buscar factura por pedido")
         print("21. Actualizar factura")
         print("22. Eliminar factura")
-
+        print("\n              USUARIOS")
+        print("23. Crear usuario")
+        print("24. Listar usuarios")
+        print("25. Buscar usuario")
+        print("26. Actualizar usuario")
+        print("27. Eliminar usuario")
+        print("\n              CLIENTES")
+        print("28. Crear cliente")
+        print("29. Listar clientes")
+        print("30. Buscar cliente")
+        print("31. Actualizar cliente")
+        print("32. Eliminar cliente")
+        print("\n              MESAS")
+        print("33. Crear mesa")
+        print("34. Listar mesas")
+        print("35. Buscar mesa")
+        print("36. Actualizar mesa")
+        print("37. Eliminar mesa")
+        print("\n              RESERVAS")
+        print("38. Crear reserva")
+        print("39. Listar reservas")
+        print("40. Buscar reserva")
+        print("41. Actualizar reserva")
+        print("42. Eliminar reserva")
         print("\n0. Salir")
 
         opcion = input("\nSeleccione una opción: ").strip()
 
-        if opcion == "1":
-            crear_empleado()
+        acciones = {
+            "1": crear_empleado,
+            "2": listar_empleados,
+            "3": buscar_empleado,
+            "4": actualizar_empleado,
+            "5": eliminar_empleado,
+            "6": crear_pedido,
+            "7": listar_pedidos,
+            "8": buscar_pedido,
+            "9": actualizar_pedido,
+            "10": eliminar_pedido,
+            "11": crear_detalle,
+            "12": listar_detalles,
+            "13": buscar_detalle,
+            "14": listar_detalles_por_pedido,
+            "15": actualizar_detalle,
+            "16": eliminar_detalle,
+            "17": crear_factura,
+            "18": listar_facturas,
+            "19": buscar_factura,
+            "20": buscar_factura_por_pedido,
+            "21": actualizar_factura,
+            "22": eliminar_factura,
+            "23": crear_usuario,
+            "24": listar_usuarios,
+            "25": buscar_usuario,
+            "26": actualizar_usuario,
+            "27": eliminar_usuario,
+            "28": crear_cliente,
+            "29": listar_clientes,
+            "30": buscar_cliente,
+            "31": actualizar_cliente,
+            "32": eliminar_cliente,
+            "33": crear_mesa,
+            "34": listar_mesas,
+            "35": buscar_mesa,
+            "36": actualizar_mesa,
+            "37": eliminar_mesa,
+            "38": crear_reserva,
+            "39": listar_reservas,
+            "40": buscar_reserva,
+            "41": actualizar_reserva,
+            "42": eliminar_reserva,
+        }
 
-        elif opcion == "2":
-            listar_empleados()
-
-        elif opcion == "3":
-            buscar_empleado()
-
-        elif opcion == "4":
-            actualizar_empleado()
-
-        elif opcion == "5":
-            eliminar_empleado()
-
-        elif opcion == "6":
-            crear_pedido()
-
-        elif opcion == "7":
-            listar_pedidos()
-
-        elif opcion == "8":
-            buscar_pedido()
-
-        elif opcion == "9":
-            actualizar_pedido()
-
-        elif opcion == "10":
-            eliminar_pedido()
-
-        elif opcion == "11":
-            crear_detalle()
-
-        elif opcion == "12":
-            listar_detalles()
-
-        elif opcion == "13":
-            buscar_detalle()
-
-        elif opcion == "14":
-            listar_detalles_por_pedido()
-
-        elif opcion == "15":
-            actualizar_detalle()
-
-        elif opcion == "16":
-            eliminar_detalle()
-
-        elif opcion == "17":
-            crear_factura()
-
-        elif opcion == "18":
-            listar_facturas()
-
-        elif opcion == "19":
-            buscar_factura()
-
-        elif opcion == "20":
-            buscar_factura_por_pedido()
-
-        elif opcion == "21":
-            actualizar_factura()
-
-        elif opcion == "22":
-            eliminar_factura()
-
-        elif opcion == "0":
+        if opcion == "0":
             print("\nPrograma finalizado.")
             break
-
+        elif opcion in acciones:
+            acciones[opcion]()
         else:
             print("\nOpción no válida.")
 
 
-# EJECUCIÓN DEL PROGRAMA
 if __name__ == "__main__":
+    cargar_datos_semilla()
+    pantalla_login()
     menu_principal()
