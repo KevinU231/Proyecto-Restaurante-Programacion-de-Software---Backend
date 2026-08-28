@@ -10,7 +10,7 @@ class DetallePedidoCRUD:
     def crear(
         self,
         id_pedido: uuid.UUID,
-        id_producto: uuid.UUID,
+        id_plato: uuid.UUID,
         cantidad: int,
         precio_unitario: float,
         id_usuario_creacion: uuid.UUID,
@@ -21,7 +21,7 @@ class DetallePedidoCRUD:
         """
         detalle = DetallePedido(
             id_pedido=id_pedido,
-            id_producto=id_producto,
+            id_plato=id_plato,
             cantidad=cantidad,
             precio_unitario=precio_unitario,
             id_usuario_creacion=id_usuario_creacion,
@@ -63,7 +63,7 @@ class DetallePedidoCRUD:
         id_detalle_pedido: uuid.UUID,
         id_usuario_edicion: uuid.UUID,
         id_pedido: uuid.UUID | None = None,
-        id_producto: uuid.UUID | None = None,
+        id_plato: uuid.UUID | None = None,
         cantidad: int | None = None,
         precio_unitario: float | None = None,
     ) -> DetallePedido | None:
@@ -79,8 +79,8 @@ class DetallePedidoCRUD:
         if id_pedido is not None:
             detalle.id_pedido = id_pedido
 
-        if id_producto is not None:
-            detalle.id_producto = id_producto
+        if id_plato is not None:
+            detalle.id_plato = id_plato
 
         if cantidad is not None:
             detalle.cantidad = cantidad
