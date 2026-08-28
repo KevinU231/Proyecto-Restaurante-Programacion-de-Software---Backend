@@ -12,8 +12,8 @@ class Mesa:
         estado: str = "libre",
     ) -> None:
         self.id_mesa: uuid.UUID = uuid.uuid4()
-        self.numero = numero.strip()
-        self.capacidad = capacidad.strip()
+        self.numero = numero
+        self.capacidad = capacidad
         self.estado = estado.strip()  # Libre, ocupada, reservada
 
         self.id_usuario_creacion = id_usuario_creacion

@@ -13,12 +13,10 @@ class Usuario:
         primer_nombre: str,
         segundo_nombre: str,
         primer_apellido: str,
+        segundo_apellido: str,
         clave: str,
         id_empleado: uuid.UUID,
-        # Este parametro puede recibir un UUID o puede
-        # no recibir nada y quedar en None
         id_usuario_creacion: Optional[uuid.UUID] = None,
-        segundo_apellido: str = "",
     ) -> None:
         self.id_usuario: uuid.UUID = uuid.uuid4()
         self.nombre_usuario = nombre_usuario.strip()

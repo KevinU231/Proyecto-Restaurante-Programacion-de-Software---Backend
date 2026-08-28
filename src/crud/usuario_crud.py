@@ -7,23 +7,23 @@ usuarios: list[Usuario] = []
 
 
 def crear_usuario(
-    id_empleado: uuid.UUID,
     nombre_usuario: str,
     primer_nombre: str,
     segundo_nombre: str,
     primer_apellido: str,
     segundo_apellido: str,
     clave: str,
+    id_empleado: uuid.UUID,
     id_usuario_creacion: Optional[uuid.UUID] = None,
 ) -> Usuario:
     nuevo = Usuario(
-        id_empleado,
         nombre_usuario,
         primer_nombre,
         segundo_nombre,
         primer_apellido,
         segundo_apellido,
         clave,
+        id_empleado,
         id_usuario_creacion,
     )
     usuarios.append(nuevo)
