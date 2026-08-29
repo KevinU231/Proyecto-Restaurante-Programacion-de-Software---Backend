@@ -5,6 +5,7 @@ from src.crud.Detalle_Pedido_crud import DetallePedidoCRUD
 from src.crud.Factura_crud import FacturaCRUD
 
 from src.crud import usuario_crud, cliente_crud, mesa_crud, reserva_crud
+from src.crud import plato_crud, menu_crud, inventario_crud, domicilio_crud
 
 # INSTANCIAS DE LOS CRUD
 empleado_crud = EmpleadoCRUD()
@@ -755,6 +756,255 @@ def eliminar_reserva():
         print("\nReserva no encontrada.")
 
 
+# PLATOS
+def crear_plato():
+    print("\n--- CREAR PLATO ---")
+    nombre = input("Nombre: ").strip()
+    precio = float(input("Precio: "))
+    descripcion = input("Descripción: ").strip()
+    ids_texto = input("IDs de insumos usados (separados por coma, Enter si ninguno): ").strip()
+    ids_insumos = [uuid.UUID(x.strip()) for x in ids_texto.split(",") if x.strip()]
+    plato = plato_crud.crear_plato(
+        nombre, precio, descripcion, ids_insumos, usuario_actual.id_usuario
+    )
+    print("\nPlato creado correctamente.")
+    print(plato)
+
+
+def listar_platos():
+    platos = plato_crud.listar_platos()
+    print("\n--- PLATOS ---")
+    if not platos:
+        print("No hay platos registrados.")
+        return
+    for plato in platos:
+        print(plato)
+
+
+def buscar_plato():
+    id_plato = obtener_uuid("ID del plato: ")
+    plato = plato_crud.buscar_plato(id_plato)
+    if plato:
+        print("\n--- PLATO ENCONTRADO ---")
+        print(plato)
+    else:
+        print("\nPlato no encontrado.")
+
+
+def actualizar_plato():
+    id_plato = obtener_uuid("ID del plato a actualizar: ")
+    if plato_crud.buscar_plato(id_plato) is None:
+        print("\nPlato no encontrado.")
+        return
+    print("\nDeje vacío un campo si no desea modificarlo.")
+    nombre = input("Nuevo nombre: ").strip()
+    precio_texto = input("Nuevo precio: ").strip()
+    precio = float(precio_texto) if precio_texto else None
+    descripcion = input("Nueva descripción: ").strip()
+    plato = plato_crud.actualizar_plato(
+        id_plato,
+        usuario_actual.id_usuario,
+        nombre=nombre if nombre else None,
+        precio=precio,
+        descripcion=descripcion if descripcion else None,
+    )
+    print("\nPlato actualizado.")
+    print(plato)
+
+
+def eliminar_plato():
+    id_plato = obtener_uuid("ID del plato a eliminar: ")
+    if plato_crud.eliminar_plato(id_plato):
+        print("\nPlato eliminado correctamente.")
+    else:
+        print("\nPlato no encontrado.")
+
+
+# MENÚS
+def crear_menu():
+    print("\n--- CREAR MENÚ ---")
+    nombre = input("Nombre: ").strip()
+    ids_texto = input("IDs de platos que contiene (separados por coma): ").strip()
+    ids_platos = [uuid.UUID(x.strip()) for x in ids_texto.split(",") if x.strip()]
+    descripcion = input("Descripción (Enter si no tiene): ").strip()
+    menu = menu_crud.crear_menu(
+        nombre, ids_platos, usuario_actual.id_usuario, descripcion
+    )
+    print("\nMenú creado correctamente.")
+    print(menu)
+
+
+def listar_menus():
+    menus = menu_crud.listar_menus()
+    print("\n--- MENÚS ---")
+    if not menus:
+        print("No hay menús registrados.")
+        return
+    for menu in menus:
+        print(menu)
+
+
+def buscar_menu():
+    id_menu = obtener_uuid("ID del menú: ")
+    menu = menu_crud.buscar_menu(id_menu)
+    if menu:
+        print("\n--- MENÚ ENCONTRADO ---")
+        print(menu)
+    else:
+        print("\nMenú no encontrado.")
+
+
+def actualizar_menu():
+    id_menu = obtener_uuid("ID del menú a actualizar: ")
+    if menu_crud.buscar_menu(id_menu) is None:
+        print("\nMenú no encontrado.")
+        return
+    print("\nDeje vacío un campo si no desea modificarlo.")
+    nombre = input("Nuevo nombre: ").strip()
+    descripcion = input("Nueva descripción: ").strip()
+    menu = menu_crud.actualizar_menu(
+        id_menu,
+        usuario_actual.id_usuario,
+        nombre=nombre if nombre else None,
+        descripcion=descripcion if descripcion else None,
+    )
+    print("\nMenú actualizado.")
+    print(menu)
+
+
+def eliminar_menu():
+    id_menu = obtener_uuid("ID del menú a eliminar: ")
+    if menu_crud.eliminar_menu(id_menu):
+        print("\nMenú eliminado correctamente.")
+    else:
+        print("\nMenú no encontrado.")
+
+
+# INVENTARIO
+def crear_inventario():
+    print("\n--- CREAR INSUMO DE INVENTARIO ---")
+    nombre_insumo = input("Nombre del insumo: ").strip()
+    cantidad = float(input("Cantidad: "))
+    unidad_medida = input("Unidad de medida: ").strip()
+    insumo = inventario_crud.crear_inventario(
+        nombre_insumo, cantidad, unidad_medida, usuario_actual.id_usuario
+    )
+    print("\nInsumo creado correctamente.")
+    print(insumo)
+
+
+def listar_inventarios():
+    insumos = inventario_crud.listar_inventarios()
+    print("\n--- INVENTARIO ---")
+    if not insumos:
+        print("No hay insumos registrados.")
+        return
+    for insumo in insumos:
+        print(insumo)
+
+
+def buscar_inventario():
+    id_insumo = obtener_uuid("ID del insumo: ")
+    insumo = inventario_crud.buscar_inventario(id_insumo)
+    if insumo:
+        print("\n--- INSUMO ENCONTRADO ---")
+        print(insumo)
+    else:
+        print("\nInsumo no encontrado.")
+
+
+def actualizar_inventario():
+    id_insumo = obtener_uuid("ID del insumo a actualizar: ")
+    if inventario_crud.buscar_inventario(id_insumo) is None:
+        print("\nInsumo no encontrado.")
+        return
+    print("\nDeje vacío un campo si no desea modificarlo.")
+    nombre_insumo = input("Nuevo nombre: ").strip()
+    cantidad_texto = input("Nueva cantidad: ").strip()
+    cantidad = float(cantidad_texto) if cantidad_texto else None
+    unidad_medida = input("Nueva unidad de medida: ").strip()
+    insumo = inventario_crud.actualizar_inventario(
+        id_insumo,
+        usuario_actual.id_usuario,
+        nombre_insumo=nombre_insumo if nombre_insumo else None,
+        cantidad=cantidad,
+        unidad_medida=unidad_medida if unidad_medida else None,
+    )
+    print("\nInsumo actualizado.")
+    print(insumo)
+
+
+def eliminar_inventario():
+    id_insumo = obtener_uuid("ID del insumo a eliminar: ")
+    if inventario_crud.eliminar_inventario(id_insumo):
+        print("\nInsumo eliminado correctamente.")
+    else:
+        print("\nInsumo no encontrado.")
+
+
+# DOMICILIOS
+def crear_domicilio():
+    print("\n--- CREAR DOMICILIO ---")
+    id_cliente = obtener_uuid("ID del cliente: ")
+    if cliente_crud.buscar_cliente(id_cliente) is None:
+        print("\nEl cliente no existe.")
+        return
+    direccion_entrega = input("Dirección de entrega: ").strip()
+    ids_texto = input("IDs de platos pedidos (separados por coma): ").strip()
+    ids_platos = [uuid.UUID(x.strip()) for x in ids_texto.split(",") if x.strip()]
+    domicilio = domicilio_crud.crear_domicilio(
+        id_cliente, direccion_entrega, ids_platos, usuario_actual.id_usuario
+    )
+    print("\nDomicilio creado correctamente.")
+    print(domicilio)
+
+
+def listar_domicilios():
+    domicilios = domicilio_crud.listar_domicilios()
+    print("\n--- DOMICILIOS ---")
+    if not domicilios:
+        print("No hay domicilios registrados.")
+        return
+    for domicilio in domicilios:
+        print(domicilio)
+
+
+def buscar_domicilio():
+    id_domicilio = obtener_uuid("ID del domicilio: ")
+    domicilio = domicilio_crud.buscar_domicilio(id_domicilio)
+    if domicilio:
+        print("\n--- DOMICILIO ENCONTRADO ---")
+        print(domicilio)
+    else:
+        print("\nDomicilio no encontrado.")
+
+
+def actualizar_domicilio():
+    id_domicilio = obtener_uuid("ID del domicilio a actualizar: ")
+    if domicilio_crud.buscar_domicilio(id_domicilio) is None:
+        print("\nDomicilio no encontrado.")
+        return
+    print("\nDeje vacío un campo si no desea modificarlo.")
+    direccion_entrega = input("Nueva dirección: ").strip()
+    estado = input("Nuevo estado (pendiente/en_camino/entregado): ").strip()
+    domicilio = domicilio_crud.actualizar_domicilio(
+        id_domicilio,
+        usuario_actual.id_usuario,
+        direccion_entrega=direccion_entrega if direccion_entrega else None,
+        estado=estado if estado else None,
+    )
+    print("\nDomicilio actualizado.")
+    print(domicilio)
+
+
+def eliminar_domicilio():
+    id_domicilio = obtener_uuid("ID del domicilio a eliminar: ")
+    if domicilio_crud.eliminar_domicilio(id_domicilio):
+        print("\nDomicilio eliminado correctamente.")
+    else:
+        print("\nDomicilio no encontrado.")
+
+
 # MENÚ PRINCIPAL
 def menu_principal():
     """
@@ -813,6 +1063,30 @@ def menu_principal():
         print("40. Buscar reserva")
         print("41. Actualizar reserva")
         print("42. Eliminar reserva")
+        print("\n              PLATOS")
+        print("43. Crear plato")
+        print("44. Listar platos")
+        print("45. Buscar plato")
+        print("46. Actualizar plato")
+        print("47. Eliminar plato")
+        print("\n              MENÚS")
+        print("48. Crear menú")
+        print("49. Listar menús")
+        print("50. Buscar menú")
+        print("51. Actualizar menú")
+        print("52. Eliminar menú")
+        print("\n              INVENTARIO")
+        print("53. Crear insumo")
+        print("54. Listar inventario")
+        print("55. Buscar insumo")
+        print("56. Actualizar insumo")
+        print("57. Eliminar insumo")
+        print("\n              DOMICILIOS")
+        print("58. Crear domicilio")
+        print("59. Listar domicilios")
+        print("60. Buscar domicilio")
+        print("61. Actualizar domicilio")
+        print("62. Eliminar domicilio")
         print("\n0. Salir")
 
         opcion = input("\nSeleccione una opción: ").strip()
@@ -860,6 +1134,26 @@ def menu_principal():
             "40": buscar_reserva,
             "41": actualizar_reserva,
             "42": eliminar_reserva,
+            "43": crear_plato,
+            "44": listar_platos,
+            "45": buscar_plato,
+            "46": actualizar_plato,
+            "47": eliminar_plato,
+            "48": crear_menu,
+            "49": listar_menus,
+            "50": buscar_menu,
+            "51": actualizar_menu,
+            "52": eliminar_menu,
+            "53": crear_inventario,
+            "54": listar_inventarios,
+            "55": buscar_inventario,
+            "56": actualizar_inventario,
+            "57": eliminar_inventario,
+            "58": crear_domicilio,
+            "59": listar_domicilios,
+            "60": buscar_domicilio,
+            "61": actualizar_domicilio,
+            "62": eliminar_domicilio,
         }
 
         if opcion == "0":
