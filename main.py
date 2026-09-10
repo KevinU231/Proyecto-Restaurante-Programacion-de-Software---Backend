@@ -75,7 +75,7 @@ def pantalla_login():
             encontrado = usuario_crud.iniciar_sesion(nombre_usuario, clave)
             if encontrado:
                 usuario_actual = encontrado
-                print(f"\nBienvenido, {encontrado.nombre_completo()}.")
+                print(f"\nBienvenido, {usuario_crud.nombre_completo(encontrado)}.")
             else:
                 print("Usuario o clave incorrectos.")
         elif opcion == "2":
@@ -762,7 +762,9 @@ def crear_plato():
     nombre = input("Nombre: ").strip()
     precio = float(input("Precio: "))
     descripcion = input("Descripción: ").strip()
-    ids_texto = input("IDs de insumos usados (separados por coma, Enter si ninguno): ").strip()
+    ids_texto = input(
+        "IDs de insumos usados (separados por coma, Enter si ninguno): "
+    ).strip()
     ids_insumos = [uuid.UUID(x.strip()) for x in ids_texto.split(",") if x.strip()]
     plato = plato_crud.crear_plato(
         nombre, precio, descripcion, ids_insumos, usuario_actual.id_usuario
