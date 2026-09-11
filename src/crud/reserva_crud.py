@@ -1,69 +1,91 @@
 import uuid
-from typing import Optional
-from src.entities.reserva import Reserva
 
-reservas: list[Reserva] = []
+from src.database.connection import get_session
+from src.entities.reserva import Reserva
+from src.crud.usuario_crud import marcar_editado
 
 
 def crear_reserva(
-    id_cliente: uuid.UUID,
-    id_mesa: uuid.UUID,
-    fecha: str,
-    hora: str,
-    num_personas: int,
-    id_usuario_creacion: uuid.UUID,
-    estado: str = "confirmada",
-) -> Reserva:
-    nueva = Reserva(
-        id_cliente,
-        id_mesa,
-        fecha,
-        hora,
-        num_personas,
-        id_usuario_creacion,
-        estado,
-    )
-    reservas.append(nueva)
-    return nueva
+    id_cliente,
+    id_mesa,
+    fecha,
+    hora,
+    num_personas,
+    id_usuario_creacion,
+    estado="confirmada",
+):
+    session = get_session()
+    try:
+        reserva = Reserva(
+            id_cliente=id_cliente,
+            id_mesa=id_mesa,
+            fecha=fecha,
+            hora=hora,
+            num_personas=num_personas,
+            estado=estado,
+            id_usuario_creacion=id_usuario_creacion,
+        )
+        session.add(reserva)
+        session.commit()
+        session.refresh(reserva)
+        return reserva
+    finally:
+        session.close()
 
 
-def listar_reservas() -> list[Reserva]:
-    return reservas
+def listar_reservas():
+    session = get_session()
+    try:
+        return session.query(Reserva).all()
+    finally:
+        session.close()
 
 
-def buscar_reserva(id_reserva: uuid.UUID) -> Optional[Reserva]:
-    for reserva in reservas:
-        if reserva.id_reserva == id_reserva:
-            return reserva
-    return None
+def buscar_reserva(id_reserva: uuid.UUID):
+    session = get_session()
+    try:
+        return session.query(Reserva).filter_by(id_reserva=id_reserva).first()
+    finally:
+        session.close()
 
 
 def actualizar_reserva(
-    id_reserva: uuid.UUID,
-    id_usuario_edicion: uuid.UUID,
-    fecha: Optional[str] = None,
-    hora: Optional[str] = None,
-    num_personas: Optional[int] = None,
-    estado: Optional[str] = None,
-) -> Optional[Reserva]:
-    reserva = buscar_reserva(id_reserva)
-    if reserva is None:
-        return None
-    if fecha:
-        reserva.fecha = fecha
-    if hora:
-        reserva.hora = hora
-    if num_personas is not None:
-        reserva.num_personas = num_personas
-    if estado:
-        reserva.estado = estado
-    reserva.marcar_editado(id_usuario_edicion)
-    return reserva
+    id_reserva,
+    id_usuario_edicion,
+    fecha=None,
+    hora=None,
+    num_personas=None,
+    estado=None,
+):
+    session = get_session()
+    try:
+        reserva = session.query(Reserva).filter_by(id_reserva=id_reserva).first()
+        if reserva is None:
+            return None
+        if fecha:
+            reserva.fecha = fecha
+        if hora:
+            reserva.hora = hora
+        if num_personas is not None:
+            reserva.num_personas = num_personas
+        if estado:
+            reserva.estado = estado
+        marcar_editado(reserva, id_usuario_edicion)
+        session.commit()
+        session.refresh(reserva)
+        return reserva
+    finally:
+        session.close()
 
 
 def eliminar_reserva(id_reserva: uuid.UUID) -> bool:
-    reserva = buscar_reserva(id_reserva)
-    if reserva is None:
-        return False
-    reservas.remove(reserva)
-    return True
+    session = get_session()
+    try:
+        reserva = session.query(Reserva).filter_by(id_reserva=id_reserva).first()
+        if reserva is None:
+            return False
+        session.delete(reserva)
+        session.commit()
+        return True
+    finally:
+        session.close()

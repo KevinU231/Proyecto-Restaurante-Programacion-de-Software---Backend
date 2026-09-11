@@ -1,38 +1,34 @@
 import uuid
 from datetime import datetime
-from typing import Optional
+
+from sqlalchemy import String, Integer, ForeignKey, DateTime
+from sqlalchemy.orm import Mapped, mapped_column
+
+from src.database.connection import Base
 
 
-class Reserva:
-    def __init__(
-        self,
-        fecha: str,
-        hora: str,
-        num_personas: int,
-        id_usuario_creacion: uuid.UUID,
-        id_cliente: uuid.UUID,  # Llave foranea, referencia al uuid de Cliente
-        id_mesa: uuid.UUID,  # Llave foranea, referencia al uuid de Mesa
-        estado: str = "confirmada",
-    ) -> None:
-        self.id_reserva: uuid.UUID = uuid.uuid4()
-        self.fecha = fecha.strip()
-        self.hora = hora.strip()
-        self.num_personas = num_personas.strip()
-        self.estado = estado.strip()  # Confirmada, Cancelada, Culminada
-        self.id_cliente = id_cliente
-        self.id_mesa = id_mesa
+class Reserva(Base):
+    __tablename__ = "reservas"
 
-        self.id_usuario_creacion = id_usuario_creacion
-        self.id_usuario_edicion: Optional[uuid.UUID] = None
-        self.fecha_creacion: datetime = datetime.now()
-        self.fecha_edicion: Optional[datetime] = None
+    id_reserva: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    id_cliente: Mapped[uuid.UUID] = mapped_column(ForeignKey("clientes.id_cliente"))
+    id_mesa: Mapped[uuid.UUID] = mapped_column(ForeignKey("mesas.id_mesa"))
+    fecha: Mapped[str] = mapped_column(String(20))
+    hora: Mapped[str] = mapped_column(String(10))
+    num_personas: Mapped[int] = mapped_column(Integer)
+    estado: Mapped[str] = mapped_column(String(20), default="confirmada")
 
-    def marcar_editado(self, id_usuario_edicion: uuid.UUID) -> None:
-        self.id_usuario_edicion = id_usuario_edicion
-        self.fecha_edicion = datetime.now()
+    id_usuario_creacion: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("usuarios.id_usuario")
+    )
+    fecha_creacion: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    id_usuario_edicion: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("usuarios.id_usuario"), nullable=True
+    )
+    fecha_edicion: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
-            f"Reserva({self.id_reserva}) - {self.fecha} {self.hora}"
-            f"/ Personas: {self.num_personas} / Estado: {self.estado}"
+            f"Reserva({self.id_reserva}) - {self.fecha} {self.hora} "
+            f"| Personas: {self.num_personas} | Estado: {self.estado}"
         )
