@@ -78,7 +78,7 @@ def pantalla_login():
             encontrado = usuario_crud.iniciar_sesion(nombre_usuario, clave)
             if encontrado:
                 usuario_actual = encontrado
-                print(f"\nBienvenido, {encontrado.nombre_completo()}.")
+                print(f"\nBienvenido, {usuario_crud.nombre_completo(encontrado)}.")
             else:
                 print("Usuario o clave incorrectos.")
         elif opcion == "2":

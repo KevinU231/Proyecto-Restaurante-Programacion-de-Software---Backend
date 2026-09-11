@@ -1,32 +1,29 @@
 import uuid
 from datetime import datetime
-from typing import Optional
+
+from sqlalchemy import String, ForeignKey, DateTime
+from sqlalchemy.orm import Mapped, mapped_column
+
+from src.database.connection import Base
 
 
-class Cliente:
-    def __init__(
-        self,
-        nombre: str,
-        telefono: str,
-        correo: str,
-        id_usuario_creacion: uuid.UUID,
-        direccion: str = "",
-    ) -> None:
-        self.id_cliente: uuid.UUID = uuid.uuid4()
-        self.nombre = nombre.strip()
-        self.telefono = telefono.strip()
-        self.correo = correo.strip()
-        self.direccion = direccion.strip()
+class Cliente(Base):
+    __tablename__ = "clientes"
 
-        # id usuario edicion y fecha edicion son None hasta que alguien edite al cliente por primera vez
-        self.id_usuario_creacion = id_usuario_creacion
-        self.id_usuario_edicion: Optional[uuid.UUID] = None
-        self.fecha_creacion: datetime = datetime.now()
-        self.fecha_edicion: Optional[datetime] = None
+    id_cliente: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    nombre: Mapped[str] = mapped_column(String(120))
+    telefono: Mapped[str] = mapped_column(String(20))
+    correo: Mapped[str] = mapped_column(String(120), default="")
+    direccion: Mapped[str] = mapped_column(String(200), default="")
 
-    def marcar_editado(self, id_usuario_edicion: uuid.UUID) -> None:
-        self.id_usuario_edicion = id_usuario_edicion
-        self.fecha_edicion = datetime.now()
+    id_usuario_creacion: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("usuarios.id_usuario")
+    )
+    fecha_creacion: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    id_usuario_edicion: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("usuarios.id_usuario"), nullable=True
+    )
+    fecha_edicion: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     def __str__(self) -> str:
-        return f"Cliente({self.id_cliente}) - {self.nombre} / Tel: {self.telefono}"
+        return f"Cliente({self.id_cliente}) - {self.nombre} | Tel: {self.telefono}"

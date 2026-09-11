@@ -1,59 +1,81 @@
 import uuid
-from typing import Optional
+
+from src.database.connection import get_session
 from src.entities.cliente import Cliente
-
-clientes: list[Cliente] = []
-
-
-def crear_cliente(
-    nombre: str,
-    telefono: str,
-    correo: str,
-    id_usuario_creacion: uuid.UUID,
-    direccion: str = "",
-) -> Cliente:
-    nuevo = Cliente(nombre, telefono, correo, id_usuario_creacion, direccion)
-    clientes.append(nuevo)
-    return nuevo
+from src.crud.usuario_crud import marcar_editado
 
 
-def listar_clientes() -> list[Cliente]:
-    return clientes
+def crear_cliente(nombre, telefono, correo, id_usuario_creacion, direccion=""):
+    session = get_session()
+    try:
+        cliente = Cliente(
+            nombre=nombre,
+            telefono=telefono,
+            correo=correo,
+            direccion=direccion,
+            id_usuario_creacion=id_usuario_creacion,
+        )
+        session.add(cliente)
+        session.commit()
+        session.refresh(cliente)
+        return cliente
+    finally:
+        session.close()
 
 
-def buscar_cliente(id_cliente: uuid.UUID) -> Optional[Cliente]:
-    for cliente in clientes:
-        if cliente.id_cliente == id_cliente:
-            return cliente
-    return None
+def listar_clientes():
+    session = get_session()
+    try:
+        return session.query(Cliente).all()
+    finally:
+        session.close()
+
+
+def buscar_cliente(id_cliente: uuid.UUID):
+    session = get_session()
+    try:
+        return session.query(Cliente).filter_by(id_cliente=id_cliente).first()
+    finally:
+        session.close()
 
 
 def actualizar_cliente(
-    id_cliente: uuid.UUID,
-    id_usuario_edicion: uuid.UUID,
-    nombre: Optional[str] = None,
-    telefono: Optional[str] = None,
-    correo: Optional[str] = None,
-    direccion: Optional[str] = None,
-) -> Optional[Cliente]:
-    cliente = buscar_cliente(id_cliente)
-    if cliente is None:
-        return None
-    if nombre:
-        cliente.nombre = nombre
-    if telefono:
-        cliente.telefono = telefono
-    if correo:
-        cliente.correo = correo
-    if direccion:
-        cliente.direccion = direccion
-    cliente.marcar_editado(id_usuario_edicion)
-    return cliente
+    id_cliente,
+    id_usuario_edicion,
+    nombre=None,
+    telefono=None,
+    correo=None,
+    direccion=None,
+):
+    session = get_session()
+    try:
+        cliente = session.query(Cliente).filter_by(id_cliente=id_cliente).first()
+        if cliente is None:
+            return None
+        if nombre:
+            cliente.nombre = nombre
+        if telefono:
+            cliente.telefono = telefono
+        if correo:
+            cliente.correo = correo
+        if direccion:
+            cliente.direccion = direccion
+        marcar_editado(cliente, id_usuario_edicion)
+        session.commit()
+        session.refresh(cliente)
+        return cliente
+    finally:
+        session.close()
 
 
 def eliminar_cliente(id_cliente: uuid.UUID) -> bool:
-    cliente = buscar_cliente(id_cliente)
-    if cliente is None:
-        return False
-    clientes.remove(cliente)
-    return True
+    session = get_session()
+    try:
+        cliente = session.query(Cliente).filter_by(id_cliente=id_cliente).first()
+        if cliente is None:
+            return False
+        session.delete(cliente)
+        session.commit()
+        return True
+    finally:
+        session.close()
