@@ -1,11 +1,21 @@
 import uuid
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
 from src.entities.Detalle_pedido import DetallePedido
 
 
 class DetallePedidoCRUD:
-    def __init__(self) -> None:
-        # Lista donde se almacenan los detalles de los pedidos
-        self.detalles: list[DetallePedido] = []
+    """
+    CRUD para gestionar los detalles de los pedidos.
+    """
+
+    def __init__(self, db: Session) -> None:
+        """
+        Recibe una sesión de SQLAlchemy.
+        """
+        self.db = db
 
     def crear(
         self,
@@ -13,12 +23,13 @@ class DetallePedidoCRUD:
         id_plato: uuid.UUID,
         cantidad: int,
         precio_unitario: float,
-        id_usuario_creacion: uuid.UUID,
+        id_usuario_creacion: uuid.UUID | None,
     ) -> DetallePedido:
         """
         Crea un nuevo detalle de pedido.
         El subtotal se calcula automáticamente en la entidad.
         """
+
         detalle = DetallePedido(
             id_pedido=id_pedido,
             id_plato=id_plato,
@@ -27,7 +38,10 @@ class DetallePedidoCRUD:
             id_usuario_creacion=id_usuario_creacion,
         )
 
-        self.detalles.append(detalle)
+        self.db.add(detalle)
+        self.db.commit()
+        self.db.refresh(detalle)
+
         return detalle
 
     def obtener(
@@ -37,26 +51,34 @@ class DetallePedidoCRUD:
         """
         Busca un detalle de pedido por su ID.
         """
-        for detalle in self.detalles:
-            if detalle.id_detalle_pedido == id_detalle_pedido:
-                return detalle
 
-        return None
+        consulta = select(DetallePedido).where(
+            DetallePedido.id_detalle_pedido == id_detalle_pedido
+        )
+
+        return self.db.scalar(consulta)
 
     def listar(self) -> list[DetallePedido]:
         """
-        Retorna todos los detalles registrados.
+        Obtiene todos los detalles registrados.
         """
-        return self.detalles
+
+        consulta = select(DetallePedido)
+
+        return list(self.db.scalars(consulta).all())
 
     def listar_por_pedido(
         self,
         id_pedido: uuid.UUID,
     ) -> list[DetallePedido]:
         """
-        Retorna todos los detalles pertenecientes a un pedido específico.
+        Obtiene todos los detalles pertenecientes
+        a un pedido específico.
         """
-        return [detalle for detalle in self.detalles if detalle.id_pedido == id_pedido]
+
+        consulta = select(DetallePedido).where(DetallePedido.id_pedido == id_pedido)
+
+        return list(self.db.scalars(consulta).all())
 
     def actualizar(
         self,
@@ -71,6 +93,7 @@ class DetallePedidoCRUD:
         Actualiza los datos del detalle.
         Si cambia la cantidad o el precio, recalcula el subtotal.
         """
+
         detalle = self.obtener(id_detalle_pedido)
 
         if detalle is None:
@@ -88,21 +111,29 @@ class DetallePedidoCRUD:
         if precio_unitario is not None:
             detalle.precio_unitario = precio_unitario
 
-        # Recalcula el subtotal con los valores actualizados
         detalle.subtotal = detalle.cantidad * detalle.precio_unitario
 
         detalle.marcar_editado(id_usuario_edicion)
 
+        self.db.commit()
+        self.db.refresh(detalle)
+
         return detalle
 
-    def eliminar(self, id_detalle_pedido: uuid.UUID) -> bool:
+    def eliminar(
+        self,
+        id_detalle_pedido: uuid.UUID,
+    ) -> bool:
         """
         Elimina un detalle de pedido por su ID.
         """
+
         detalle = self.obtener(id_detalle_pedido)
 
         if detalle is None:
             return False
 
-        self.detalles.remove(detalle)
+        self.db.delete(detalle)
+        self.db.commit()
+
         return True

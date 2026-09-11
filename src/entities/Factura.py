@@ -1,15 +1,30 @@
 import uuid
 from datetime import datetime
 from typing import Optional
+from sqlalchemy import DateTime, Numeric, ForeignKey, String
+from sqlalchemy.orm import Mapped, mapped_column
+
+from src.database.connection import Base
 
 
-class Factura:
+class Factura(Base):
+    __tablename__ = "facturas"
+
+    id_factura: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    id_pedido: Mapped[uuid.UUID] = mapped_column(ForeignKey("pedidos.id_pedido"))
+    metodo_pago: Mapped[str] = mapped_column(String(100))
+    total: Mapped[float] = mapped_column(Numeric(precision=10, scale=2))
+    id_usuario_creacion: Mapped[Optional[uuid.UUID]] = mapped_column(nullable=True)
+    id_usuario_edicion: Mapped[Optional[uuid.UUID]] = mapped_column(nullable=True)
+    fecha_creacion: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    fecha_edicion: Mapped[Optional[datetime]] = mapped_column(DateTime)
+
     def __init__(
         self,
         id_pedido: uuid.UUID,
         metodo_pago: str,
         total: float,
-        id_usuario_creacion: uuid.UUID,
+        id_usuario_creacion: Optional[uuid.UUID],
     ) -> None:
         # Genera automáticamente el ID de la factura
         self.id_factura: uuid.UUID = uuid.uuid4()
