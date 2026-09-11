@@ -2,15 +2,35 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
+from sqlalchemy import DateTime, Numeric, ForeignKey, Integer
+from sqlalchemy.orm import Mapped, mapped_column
 
-class DetallePedido:
+from src.database.connection import Base
+
+
+class DetallePedido(Base):
+    __tablename__ = "detalles_pedido"
+
+    id_detalle_pedido: Mapped[uuid.UUID] = mapped_column(
+        primary_key=True, default=uuid.uuid4
+    )
+    id_pedido: Mapped[uuid.UUID] = mapped_column(ForeignKey("pedidos.id_pedido"))
+    id_plato: Mapped[uuid.UUID] = mapped_column(ForeignKey("platos.id_plato"))
+    cantidad: Mapped[int] = mapped_column()
+    precio_unitario: Mapped[float] = mapped_column(Numeric(precision=10, scale=2))
+    subtotal: Mapped[float] = mapped_column(Numeric(precision=10, scale=2))
+    id_usuario_creacion: Mapped[Optional[uuid.UUID]] = mapped_column(nullable=True)
+    id_usuario_edicion: Mapped[Optional[uuid.UUID]] = mapped_column(nullable=True)
+    fecha_creacion: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    fecha_edicion: Mapped[Optional[datetime]] = mapped_column(DateTime)
+
     def __init__(
         self,
         id_pedido: uuid.UUID,
         id_plato: uuid.UUID,
         cantidad: int,
         precio_unitario: float,
-        id_usuario_creacion: uuid.UUID,
+        id_usuario_creacion: Optional[uuid.UUID],
     ) -> None:
         # ID único del detalle
         self.id_detalle_pedido: uuid.UUID = uuid.uuid4()

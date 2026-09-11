@@ -1,16 +1,32 @@
 import uuid
 from datetime import datetime
 from typing import Optional
+from sqlalchemy import String, DateTime
+from sqlalchemy.orm import Mapped, mapped_column
+
+from src.database.connection import Base
 
 
-class Empleado:
+class Empleado(Base):
+    __tablename__ = "empleados"
+
+    id_empleado: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    nombre: Mapped[str] = mapped_column(String(100))
+    telefono: Mapped[str] = mapped_column(String(20))
+    correo: Mapped[str] = mapped_column(String(100))
+    cargo: Mapped[str] = mapped_column(String(100))
+    id_usuario_creacion: Mapped[Optional[uuid.UUID]] = mapped_column(nullable=True)
+    id_usuario_edicion: Mapped[Optional[uuid.UUID]] = mapped_column(nullable=True)
+    fecha_creacion: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    fecha_edicion: Mapped[Optional[datetime]] = mapped_column(DateTime)
+
     def __init__(
         self,
         nombre: str,
         telefono: str,
         correo: str,
         cargo: str,
-        id_usuario_creacion: uuid.UUID,
+        id_usuario_creacion: Optional[uuid.UUID],
     ) -> None:
         # Genera automáticamente un ID único para el empleado
         self.id_empleado: uuid.UUID = uuid.uuid4()
