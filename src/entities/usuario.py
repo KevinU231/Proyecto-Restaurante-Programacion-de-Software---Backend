@@ -1,61 +1,32 @@
 import uuid
 from datetime import datetime
 
-# Agregamos Optional ya que algunos atributos pueden
-# ser del tipo indicado o pueden ser None
-from typing import Optional
+from sqlalchemy import String, ForeignKey, DateTime
+from sqlalchemy.orm import Mapped, mapped_column
+
+from src.database.connection import Base
 
 
-class Usuario:
-    def __init__(
-        self,
-        nombre_usuario: str,
-        primer_nombre: str,
-        segundo_nombre: str,
-        primer_apellido: str,
-        segundo_apellido: str,
-        clave: str,
-        id_empleado: uuid.UUID,
-        id_usuario_creacion: Optional[uuid.UUID] = None,
-    ) -> None:
-        self.id_usuario: uuid.UUID = uuid.uuid4()
-        self.nombre_usuario = nombre_usuario.strip()
-        self.primer_nombre = primer_nombre.strip()
-        self.segundo_nombre = segundo_nombre.strip()
-        self.primer_apellido = primer_apellido.strip()
-        self.segundo_apellido = segundo_apellido.strip()
-        self.clave = clave
-        self.id_empleado = id_empleado
+class Usuario(Base):
+    __tablename__ = "usuarios"
 
-        # id usuario creacion puede ser None solo para el usuario que
-        # arranca el sistema ya que nadie existia todavia para haberlo creado
-        self.id_usuario_creacion: Optional[uuid.UUID] = id_usuario_creacion
-        self.fecha_creacion: datetime = datetime.now()
-        # Al crear el objeto todavia nadie lo ha editado, por eso estos
-        # dos valores arrancan en None y el Optional permite que arranque
-        # vacio y se llene despues de editarse
-        self.fecha_edicion: Optional[datetime] = None
-        self.id_usuario_edicion: Optional[uuid.UUID] = None
+    id_usuario: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    id_empleado: Mapped[uuid.UUID] = mapped_column(ForeignKey("empleados.id_empleado"))
+    nombre_usuario: Mapped[str] = mapped_column(String(80), unique=True)
+    primer_nombre: Mapped[str] = mapped_column(String(80))
+    segundo_nombre: Mapped[str] = mapped_column(String(80), default="")
+    primer_apellido: Mapped[str] = mapped_column(String(80))
+    segundo_apellido: Mapped[str] = mapped_column(String(80), default="")
+    clave: Mapped[str] = mapped_column(String(255))
 
-    # Metodo que recoge los nombres y apellidos del
-    # usuario en una lista y los une
-    def nombre_completo(self) -> str:
-        partes = [
-            self.primer_nombre,
-            self.segundo_nombre,
-            self.primer_apellido,
-            self.segundo_apellido,
-        ]
-        return " ".join(parte for parte in partes if parte)
-
-    # Metodo que se llama cada vez que alguien edita el registro, y actualiza
-    # edito y cuando para dejar un rastro de lo editado
-    def marcar_editado(self, id_usuario_edicion: uuid.UUID) -> None:
-        self.id_usuario_edicion = id_usuario_edicion
-        self.fecha_edicion = datetime.now()
+    id_usuario_creacion: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("usuarios.id_usuario"), nullable=True
+    )
+    fecha_creacion: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    id_usuario_edicion: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("usuarios.id_usuario"), nullable=True
+    )
+    fecha_edicion: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     def __str__(self) -> str:
-        return (
-            f"Usuario({self.id_usuario}) - {self.nombre_completo()}"
-            f" - {self.nombre_usuario}"
-        )
+        return f"Usuario({self.id_usuario}) - {self.primer_nombre} {self.primer_apellido} - {self.nombre_usuario}"

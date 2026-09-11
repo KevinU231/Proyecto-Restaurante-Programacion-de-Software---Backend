@@ -1,29 +1,28 @@
 import uuid
 from datetime import datetime
-from typing import Optional
+
+from sqlalchemy import String, Integer, ForeignKey, DateTime
+from sqlalchemy.orm import Mapped, mapped_column
+
+from src.database.connection import Base
 
 
-class Mesa:
-    def __init__(
-        self,
-        numero: int,
-        capacidad: int,
-        id_usuario_creacion: uuid.UUID,
-        estado: str = "libre",
-    ) -> None:
-        self.id_mesa: uuid.UUID = uuid.uuid4()
-        self.numero = numero
-        self.capacidad = capacidad
-        self.estado = estado.strip()  # Libre, ocupada, reservada
+class Mesa(Base):
+    __tablename__ = "mesas"
 
-        self.id_usuario_creacion = id_usuario_creacion
-        self.id_usuario_edicion: Optional[uuid.UUID] = None
-        self.fecha_creacion: datetime = datetime.now()
-        self.fecha_edicion: Optional[datetime] = None
+    id_mesa: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    numero: Mapped[int] = mapped_column(Integer)
+    capacidad: Mapped[int] = mapped_column(Integer)
+    estado: Mapped[str] = mapped_column(String(20), default="libre")
 
-    def marcar_editado(self, id_usuario_edicion: uuid.UUID) -> None:
-        self.id_usuario_edicion = id_usuario_edicion
-        self.fecha_edicion = datetime.now()
+    id_usuario_creacion: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("usuarios.id_usuario")
+    )
+    fecha_creacion: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    id_usuario_edicion: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("usuarios.id_usuario"), nullable=True
+    )
+    fecha_edicion: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     def __str__(self) -> str:
-        return f"Mesa({self.id_mesa}) - Numero: {self.numero} / Capacidad: {self.capacidad}"
+        return f"Mesa({self.id_mesa}) - N°{self.numero} | Capacidad: {self.capacidad} | Estado: {self.estado}"
