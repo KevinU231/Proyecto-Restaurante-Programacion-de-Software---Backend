@@ -1,11 +1,27 @@
 import uuid
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
 from src.entities.Pedido import Pedido
 
 
 class PedidoCRUD:
-    def __init__(self) -> None:
-        # Lista donde se almacenan los pedidos
-        self.pedidos: list[Pedido] = []
+    """
+    CRUD para gestionar los pedidos.
+
+    CRUD significa:
+    - Create: crear
+    - Read: consultar
+    - Update: actualizar
+    - Delete: eliminar
+    """
+
+    def __init__(self, db: Session) -> None:
+        """
+        Recibe una sesión de SQLAlchemy.
+        """
+        self.db = db
 
     def crear(
         self,
@@ -13,39 +29,48 @@ class PedidoCRUD:
         id_cliente: uuid.UUID,
         estado: str,
         total: float,
-        id_usuario_creacion: uuid.UUID,
-        id_mesa: uuid.UUID = None,
+        id_usuario_creacion: uuid.UUID | None,
+        id_mesa: uuid.UUID | None = None,
     ) -> Pedido:
         """
-        Crea un nuevo pedido y lo agrega a la lista.
+        Crea un nuevo pedido y lo guarda en la base de datos.
         """
+
         pedido = Pedido(
             id_empleado=id_empleado,
             id_cliente=id_cliente,
-            estado=estado,
+            estado=estado.strip(),
             total=total,
             id_usuario_creacion=id_usuario_creacion,
             id_mesa=id_mesa,
         )
 
-        self.pedidos.append(pedido)
+        self.db.add(pedido)
+        self.db.commit()
+        self.db.refresh(pedido)
+
         return pedido
 
-    def obtener(self, id_pedido: uuid.UUID) -> Pedido | None:
+    def obtener(
+        self,
+        id_pedido: uuid.UUID,
+    ) -> Pedido | None:
         """
         Busca un pedido por su ID.
         """
-        for pedido in self.pedidos:
-            if pedido.id_pedido == id_pedido:
-                return pedido
 
-        return None
+        consulta = select(Pedido).where(Pedido.id_pedido == id_pedido)
+
+        return self.db.scalar(consulta)
 
     def listar(self) -> list[Pedido]:
         """
-        Retorna todos los pedidos registrados.
+        Obtiene todos los pedidos registrados.
         """
-        return self.pedidos
+
+        consulta = select(Pedido)
+
+        return list(self.db.scalars(consulta).all())
 
     def actualizar(
         self,
@@ -60,6 +85,7 @@ class PedidoCRUD:
         """
         Actualiza los datos de un pedido.
         """
+
         pedido = self.obtener(id_pedido)
 
         if pedido is None:
@@ -82,16 +108,25 @@ class PedidoCRUD:
 
         pedido.marcar_editado(id_usuario_edicion)
 
+        self.db.commit()
+        self.db.refresh(pedido)
+
         return pedido
 
-    def eliminar(self, id_pedido: uuid.UUID) -> bool:
+    def eliminar(
+        self,
+        id_pedido: uuid.UUID,
+    ) -> bool:
         """
         Elimina un pedido por su ID.
         """
+
         pedido = self.obtener(id_pedido)
 
         if pedido is None:
             return False
 
-        self.pedidos.remove(pedido)
+        self.db.delete(pedido)
+        self.db.commit()
+
         return True
