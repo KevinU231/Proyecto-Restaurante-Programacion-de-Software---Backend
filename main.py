@@ -1,4 +1,6 @@
 import uuid
+
+from src.database.connection import Base, get_session
 from src.crud.empleado_crud import EmpleadoCRUD
 from src.crud.Pedido_crud import PedidoCRUD
 from src.crud.Detalle_Pedido_crud import DetallePedidoCRUD
@@ -8,10 +10,11 @@ from src.crud import usuario_crud, cliente_crud, mesa_crud, reserva_crud
 from src.crud import plato_crud, menu_crud, inventario_crud, domicilio_crud
 
 # INSTANCIAS DE LOS CRUD
-empleado_crud = EmpleadoCRUD()
-pedido_crud = PedidoCRUD()
-detalle_crud = DetallePedidoCRUD()
-factura_crud = FacturaCRUD()
+db = get_session()
+empleado_crud = EmpleadoCRUD(db)
+pedido_crud = PedidoCRUD(db)
+detalle_crud = DetallePedidoCRUD(db)
+factura_crud = FacturaCRUD(db)
 
 usuario_actual = None
 
@@ -298,14 +301,14 @@ def crear_detalle():
     if pedido_crud.obtener(id_pedido) is None:
         print("\nEl pedido no existe.")
         return
-    id_producto = obtener_uuid("ID del producto: ")
+    id_plato = obtener_uuid("ID del plato: ")
 
     cantidad = int(input("Cantidad: "))
     precio_unitario = float(input("Precio unitario: "))
 
     detalle = detalle_crud.crear(
         id_pedido=id_pedido,
-        id_producto=id_producto,
+        id_plato=id_plato,
         cantidad=cantidad,
         precio_unitario=precio_unitario,
         id_usuario_creacion=usuario_actual.id_usuario,
@@ -762,7 +765,9 @@ def crear_plato():
     nombre = input("Nombre: ").strip()
     precio = float(input("Precio: "))
     descripcion = input("Descripción: ").strip()
-    ids_texto = input("IDs de insumos usados (separados por coma, Enter si ninguno): ").strip()
+    ids_texto = input(
+        "IDs de insumos usados (separados por coma, Enter si ninguno): "
+    ).strip()
     ids_insumos = [uuid.UUID(x.strip()) for x in ids_texto.split(",") if x.strip()]
     plato = plato_crud.crear_plato(
         nombre, precio, descripcion, ids_insumos, usuario_actual.id_usuario

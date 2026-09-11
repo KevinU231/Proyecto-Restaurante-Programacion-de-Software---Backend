@@ -1,9 +1,26 @@
 import uuid
 from datetime import datetime
 from typing import Optional
+from sqlalchemy import String, DateTime, Numeric, ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column
+
+from src.database.connection import Base
 
 
-class Pedido:
+class Pedido(Base):
+    __tablename__ = "pedidos"
+
+    id_pedido: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    id_empleado: Mapped[uuid.UUID] = mapped_column(ForeignKey("empleados.id_empleado"))
+    id_cliente: Mapped[uuid.UUID] = mapped_column(ForeignKey("clientes.id_cliente"))
+    id_mesa: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("mesas.id_mesa"))
+    estado: Mapped[str] = mapped_column(String(100))
+    total: Mapped[float] = mapped_column(Numeric(precision=10, scale=2))
+    id_usuario_creacion: Mapped[Optional[uuid.UUID]] = mapped_column(nullable=True)
+    id_usuario_edicion: Mapped[Optional[uuid.UUID]] = mapped_column(nullable=True)
+    fecha_creacion: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    fecha_edicion: Mapped[Optional[datetime]] = mapped_column(DateTime)
+
     def __init__(
         self,
         id_empleado: uuid.UUID,
@@ -11,7 +28,7 @@ class Pedido:
         id_cliente: uuid.UUID,
         estado: str,
         total: float,
-        id_usuario_creacion: uuid.UUID,
+        id_usuario_creacion: Optional[uuid.UUID],
         id_mesa: Optional[uuid.UUID] = None,
     ) -> None:
         # Genera automáticamente el ID del pedido

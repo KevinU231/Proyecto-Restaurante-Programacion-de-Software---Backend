@@ -1,11 +1,30 @@
 import uuid
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
 from src.entities.empleado import Empleado
 
 
 class EmpleadoCRUD:
-    def __init__(self) -> None:
-        # Lista donde se almacenan los empleados creados
-        self.empleados: list[Empleado] = []
+    """
+    CRUD para gestionar los empleados.
+
+    CRUD significa:
+    - Create: crear
+    - Read: consultar
+    - Update: actualizar
+    - Delete: eliminar
+    """
+
+    def __init__(self, db: Session) -> None:
+        """
+        Recibe una sesión de SQLAlchemy.
+
+        Esta sesión permite realizar operaciones
+        directamente sobre la base de datos.
+        """
+        self.db = db
 
     def crear(
         self,
@@ -13,11 +32,12 @@ class EmpleadoCRUD:
         telefono: str,
         correo: str,
         cargo: str,
-        id_usuario_creacion: uuid.UUID,
+        id_usuario_creacion: uuid.UUID | None,
     ) -> Empleado:
         """
-        Crea un nuevo empleado y lo agrega a la lista.
+        Crea un nuevo empleado y lo guarda en la base de datos.
         """
+
         empleado = Empleado(
             nombre=nombre,
             telefono=telefono,
@@ -26,25 +46,41 @@ class EmpleadoCRUD:
             id_usuario_creacion=id_usuario_creacion,
         )
 
-        self.empleados.append(empleado)
+        # Agrega el empleado a la sesión.
+        self.db.add(empleado)
+
+        # Guarda los cambios en la base de datos.
+        self.db.commit()
+
+        # Actualiza el objeto con los datos generados por la BD.
+        self.db.refresh(empleado)
+
         return empleado
 
-    def obtener(self, id_empleado: uuid.UUID) -> Empleado | None:
+    def obtener(
+        self,
+        id_empleado: uuid.UUID,
+    ) -> Empleado | None:
         """
         Busca un empleado por su ID.
-        Retorna el empleado si existe; de lo contrario, retorna None.
-        """
-        for empleado in self.empleados:
-            if empleado.id_empleado == id_empleado:
-                return empleado
 
-        return None
+        Retorna el empleado si existe.
+        Si no existe, retorna None.
+        """
+
+        consulta = select(Empleado).where(Empleado.id_empleado == id_empleado)
+
+        return self.db.scalar(consulta)
 
     def listar(self) -> list[Empleado]:
         """
-        Retorna todos los empleados registrados.
+        Obtiene todos los empleados registrados
+        en la base de datos.
         """
-        return self.empleados
+
+        consulta = select(Empleado)
+
+        return list(self.db.scalars(consulta).all())
 
     def actualizar(
         self,
@@ -56,9 +92,10 @@ class EmpleadoCRUD:
         cargo: str | None = None,
     ) -> Empleado | None:
         """
-        Busca un empleado y actualiza únicamente los datos recibidos.
-        También registra quién realizó la modificación.
+        Busca un empleado y actualiza únicamente
+        los datos que fueron enviados.
         """
+
         empleado = self.obtener(id_empleado)
 
         if empleado is None:
@@ -76,19 +113,34 @@ class EmpleadoCRUD:
         if cargo is not None:
             empleado.cargo = cargo.strip()
 
+        # Registra quién realizó la modificación.
         empleado.marcar_editado(id_usuario_edicion)
+
+        # Guarda los cambios.
+        self.db.commit()
+
+        # Actualiza el objeto.
+        self.db.refresh(empleado)
 
         return empleado
 
-    def eliminar(self, id_empleado: uuid.UUID) -> bool:
+    def eliminar(
+        self,
+        id_empleado: uuid.UUID,
+    ) -> bool:
         """
         Elimina un empleado por su ID.
-        Retorna True si fue eliminado y False si no fue encontrado.
+
+        Retorna True si fue eliminado.
+        Retorna False si no fue encontrado.
         """
+
         empleado = self.obtener(id_empleado)
 
         if empleado is None:
             return False
 
-        self.empleados.remove(empleado)
+        self.db.delete(empleado)
+        self.db.commit()
+
         return True

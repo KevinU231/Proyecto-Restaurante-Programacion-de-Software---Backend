@@ -1,41 +1,57 @@
 import uuid
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
 from src.entities.Factura import Factura
 
 
 class FacturaCRUD:
-    def __init__(self) -> None:
-        # Lista donde se almacenan las facturas
-        self.facturas: list[Factura] = []
+    """
+    CRUD para gestionar las facturas.
+    """
+
+    def __init__(self, db: Session) -> None:
+        """
+        Recibe una sesión de SQLAlchemy.
+        """
+        self.db = db
 
     def crear(
         self,
         id_pedido: uuid.UUID,
         metodo_pago: str,
         total: float,
-        id_usuario_creacion: uuid.UUID,
+        id_usuario_creacion: uuid.UUID | None,
     ) -> Factura:
         """
-        Crea una nueva factura y la agrega a la lista.
+        Crea una nueva factura y la guarda en la base de datos.
         """
+
         factura = Factura(
             id_pedido=id_pedido,
-            metodo_pago=metodo_pago,
+            metodo_pago=metodo_pago.strip(),
             total=total,
             id_usuario_creacion=id_usuario_creacion,
         )
 
-        self.facturas.append(factura)
+        self.db.add(factura)
+        self.db.commit()
+        self.db.refresh(factura)
+
         return factura
 
-    def obtener(self, id_factura: uuid.UUID) -> Factura | None:
+    def obtener(
+        self,
+        id_factura: uuid.UUID,
+    ) -> Factura | None:
         """
         Busca una factura por su ID.
         """
-        for factura in self.facturas:
-            if factura.id_factura == id_factura:
-                return factura
 
-        return None
+        consulta = select(Factura).where(Factura.id_factura == id_factura)
+
+        return self.db.scalar(consulta)
 
     def obtener_por_pedido(
         self,
@@ -44,17 +60,19 @@ class FacturaCRUD:
         """
         Busca la factura asociada a un pedido específico.
         """
-        for factura in self.facturas:
-            if factura.id_pedido == id_pedido:
-                return factura
 
-        return None
+        consulta = select(Factura).where(Factura.id_pedido == id_pedido)
+
+        return self.db.scalar(consulta)
 
     def listar(self) -> list[Factura]:
         """
-        Retorna todas las facturas registradas.
+        Obtiene todas las facturas registradas.
         """
-        return self.facturas
+
+        consulta = select(Factura)
+
+        return list(self.db.scalars(consulta).all())
 
     def actualizar(
         self,
@@ -67,6 +85,7 @@ class FacturaCRUD:
         """
         Actualiza los datos de una factura.
         """
+
         factura = self.obtener(id_factura)
 
         if factura is None:
@@ -83,16 +102,25 @@ class FacturaCRUD:
 
         factura.marcar_editado(id_usuario_edicion)
 
+        self.db.commit()
+        self.db.refresh(factura)
+
         return factura
 
-    def eliminar(self, id_factura: uuid.UUID) -> bool:
+    def eliminar(
+        self,
+        id_factura: uuid.UUID,
+    ) -> bool:
         """
         Elimina una factura por su ID.
         """
+
         factura = self.obtener(id_factura)
 
         if factura is None:
             return False
 
-        self.facturas.remove(factura)
+        self.db.delete(factura)
+        self.db.commit()
+
         return True
