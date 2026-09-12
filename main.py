@@ -11,7 +11,8 @@ from src.crud.Factura_crud import FacturaCRUD
 
 from src.crud import usuario_crud, cliente_crud, mesa_crud, reserva_crud
 from src.crud import plato_crud, menu_crud, inventario_crud, domicilio_crud
-from src.seeds.seed import ejecutar_seeds
+from src.database.seeders import ejecutar_seeds
+from init_db import init_db
 
 # INSTANCIAS DE LOS CRUD
 db = get_session()
@@ -1146,9 +1147,8 @@ def menu_principal():
             print("\nOpción no válida.")
 
 
-Base.metadata.create_all(bind=engine)
-
 if __name__ == "__main__":
+    init_db()
     ejecutar_seeds(db)
     pantalla_login()
     menu_principal()
