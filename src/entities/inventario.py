@@ -1,25 +1,26 @@
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
+from sqlalchemy import String, Float, DateTime
+from sqlalchemy.dialects.postgresql import UUID as PGUUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from src.database.connection import Base
+from src.entities.plato import plato_insumo
 
+class Inventario(Base):
+    __tablename__ = "inventario"
 
-class Inventario:
-    def __init__(
-        self,
-        nombre_insumo: str,
-        cantidad: float,
-        unidad_medida: str,
-        id_usuario_creacion: uuid.UUID,
-    ) -> None:
-        self.id_insumo: uuid.UUID = uuid.uuid4()
-        self.nombre_insumo = nombre_insumo.strip()
-        self.cantidad = cantidad
-        self.unidad_medida = unidad_medida.strip()
+    id_insumo: Mapped[uuid.UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    nombre_insumo: Mapped[str] = mapped_column(String(150), nullable=False)
+    cantidad: Mapped[float] = mapped_column(Float, nullable=False)
+    unidad_medida: Mapped[str] = mapped_column(String(50), nullable=False)
 
-        self.id_usuario_creacion = id_usuario_creacion
-        self.id_usuario_edicion: Optional[uuid.UUID] = None
-        self.fecha_creacion: datetime = datetime.now()
-        self.fecha_edicion: Optional[datetime] = None
+    id_usuario_creacion: Mapped[uuid.UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False)
+    id_usuario_edicion: Mapped[Optional[uuid.UUID]] = mapped_column(PGUUID(as_uuid=True), nullable=True)
+    fecha_creacion: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    fecha_edicion: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    platos: Mapped[List["Plato"]] = relationship(secondary=plato_insumo, back_populates="insumos")
 
     def marcar_editado(self, id_usuario_edicion: uuid.UUID) -> None:
         self.id_usuario_edicion = id_usuario_edicion
