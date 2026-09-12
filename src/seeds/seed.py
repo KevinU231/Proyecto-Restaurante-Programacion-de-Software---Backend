@@ -144,8 +144,8 @@ def ejecutar_seeds(db: Session) -> None:
     # DETALLE DE PEDIDO
 
     print(
-        "DetallePedido: pendiente hasta que Plato sea convertido "
-        "en modelo SQLAlchemy."
+        "DetallePedido: pendiente hasta que la entidad Plato sea convertido "
+        "queda pendiente hasta que la entidad Plato sea convertido a SQLAlchemy"
     )
 
     # FACTURA
