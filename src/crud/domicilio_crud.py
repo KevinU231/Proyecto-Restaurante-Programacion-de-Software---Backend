@@ -1,8 +1,11 @@
 import uuid
 from typing import Optional
-from src.entities.domicilio import Domicilio
 
-domicilios: list[Domicilio] = []
+from sqlalchemy.orm import selectinload
+
+from src.database.connection import get_session
+from src.entities.domicilio import Domicilio
+from src.entities.plato import Plato
 
 
 def crear_domicilio(
@@ -12,20 +15,53 @@ def crear_domicilio(
     id_usuario_creacion: uuid.UUID,
     estado: str = "pendiente",
 ) -> Domicilio:
-    nuevo = Domicilio(id_cliente, direccion_entrega, ids_platos, id_usuario_creacion, estado)
-    domicilios.append(nuevo)
-    return nuevo
+    session = get_session()
+    try:
+        nuevo = Domicilio(
+            id_cliente=id_cliente,
+            direccion_entrega=direccion_entrega,
+            estado=estado,
+            id_usuario_creacion=id_usuario_creacion,
+        )
+        if ids_platos:
+            platos = (
+                session.query(Plato)
+                .filter(Plato.id_plato.in_(ids_platos))
+                .all()
+            )
+            nuevo.platos = platos
+        session.add(nuevo)
+        session.commit()
+        session.refresh(nuevo)
+        _ = nuevo.platos
+        return nuevo
+    finally:
+        session.close()
 
 
 def listar_domicilios() -> list[Domicilio]:
-    return domicilios
+    session = get_session()
+    try:
+        return (
+            session.query(Domicilio)
+            .options(selectinload(Domicilio.platos))
+            .all()
+        )
+    finally:
+        session.close()
 
 
 def buscar_domicilio(id_domicilio: uuid.UUID) -> Optional[Domicilio]:
-    for domicilio in domicilios:
-        if domicilio.id_domicilio == id_domicilio:
-            return domicilio
-    return None
+    session = get_session()
+    try:
+        return (
+            session.query(Domicilio)
+            .options(selectinload(Domicilio.platos))
+            .filter_by(id_domicilio=id_domicilio)
+            .first()
+        )
+    finally:
+        session.close()
 
 
 def actualizar_domicilio(
@@ -35,22 +71,47 @@ def actualizar_domicilio(
     ids_platos: Optional[list[uuid.UUID]] = None,
     estado: Optional[str] = None,
 ) -> Optional[Domicilio]:
-    domicilio = buscar_domicilio(id_domicilio)
-    if domicilio is None:
-        return None
-    if direccion_entrega:
-        domicilio.direccion_entrega = direccion_entrega
-    if ids_platos is not None:
-        domicilio.ids_platos = ids_platos
-    if estado:
-        domicilio.estado = estado
-    domicilio.marcar_editado(id_usuario_edicion)
-    return domicilio
+    session = get_session()
+    try:
+        domicilio = (
+            session.query(Domicilio)
+            .filter_by(id_domicilio=id_domicilio)
+            .first()
+        )
+        if domicilio is None:
+            return None
+        if direccion_entrega:
+            domicilio.direccion_entrega = direccion_entrega
+        if ids_platos is not None:
+            platos = (
+                session.query(Plato)
+                .filter(Plato.id_plato.in_(ids_platos))
+                .all()
+            )
+            domicilio.platos = platos
+        if estado:
+            domicilio.estado = estado
+        domicilio.marcar_editado(id_usuario_edicion)
+        session.commit()
+        session.refresh(domicilio)
+        _ = domicilio.platos
+        return domicilio
+    finally:
+        session.close()
 
 
 def eliminar_domicilio(id_domicilio: uuid.UUID) -> bool:
-    domicilio = buscar_domicilio(id_domicilio)
-    if domicilio is None:
-        return False
-    domicilios.remove(domicilio)
-    return True
+    session = get_session()
+    try:
+        domicilio = (
+            session.query(Domicilio)
+            .filter_by(id_domicilio=id_domicilio)
+            .first()
+        )
+        if domicilio is None:
+            return False
+        session.delete(domicilio)
+        session.commit()
+        return True
+    finally:
+        session.close()
