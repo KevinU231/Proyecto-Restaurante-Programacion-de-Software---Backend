@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import String, DateTime
+from sqlalchemy import String, DateTime, ForeignKey  # agregar ForeignKey al import
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database.connection import Base
@@ -15,8 +15,12 @@ class Empleado(Base):
     telefono: Mapped[str] = mapped_column(String(20))
     correo: Mapped[str] = mapped_column(String(100))
     cargo: Mapped[str] = mapped_column(String(100))
-    id_usuario_creacion: Mapped[Optional[uuid.UUID]] = mapped_column(nullable=True)
-    id_usuario_edicion: Mapped[Optional[uuid.UUID]] = mapped_column(nullable=True)
+    id_usuario_creacion: Mapped[Optional[uuid.UUID]] = mapped_column(
+        ForeignKey("usuarios.id_usuario"), nullable=True
+    )
+    id_usuario_edicion: Mapped[Optional[uuid.UUID]] = mapped_column(
+        ForeignKey("usuarios.id_usuario"), nullable=True
+    )
     fecha_creacion: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     fecha_edicion: Mapped[Optional[datetime]] = mapped_column(DateTime)
 
