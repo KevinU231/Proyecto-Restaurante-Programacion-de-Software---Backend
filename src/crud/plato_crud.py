@@ -1,8 +1,11 @@
 import uuid
 from typing import Optional
-from src.entities.plato import Plato
 
-platos: list[Plato] = []
+from sqlalchemy.orm import selectinload
+
+from src.database.connection import get_session
+from src.entities.plato import Plato
+from src.entities.inventario import Inventario
 
 
 def crear_plato(
@@ -12,20 +15,53 @@ def crear_plato(
     ids_insumos: list[uuid.UUID],
     id_usuario_creacion: uuid.UUID,
 ) -> Plato:
-    nuevo = Plato(nombre, precio, descripcion, ids_insumos, id_usuario_creacion)
-    platos.append(nuevo)
-    return nuevo
+    session = get_session()
+    try:
+        nuevo = Plato(
+            nombre=nombre,
+            precio=precio,
+            descripcion=descripcion,
+            id_usuario_creacion=id_usuario_creacion,
+        )
+        if ids_insumos:
+            insumos = (
+                session.query(Inventario)
+                .filter(Inventario.id_insumo.in_(ids_insumos))
+                .all()
+            )
+            nuevo.insumos = insumos
+        session.add(nuevo)
+        session.commit()
+        session.refresh(nuevo)
+        _ = nuevo.insumos  # fuerza la carga de la relacion antes de cerrar sesion
+        return nuevo
+    finally:
+        session.close()
 
 
 def listar_platos() -> list[Plato]:
-    return platos
+    session = get_session()
+    try:
+        return (
+            session.query(Plato)
+            .options(selectinload(Plato.insumos))
+            .all()
+        )
+    finally:
+        session.close()
 
 
 def buscar_plato(id_plato: uuid.UUID) -> Optional[Plato]:
-    for plato in platos:
-        if plato.id_plato == id_plato:
-            return plato
-    return None
+    session = get_session()
+    try:
+        return (
+            session.query(Plato)
+            .options(selectinload(Plato.insumos))
+            .filter_by(id_plato=id_plato)
+            .first()
+        )
+    finally:
+        session.close()
 
 
 def actualizar_plato(
@@ -36,24 +72,41 @@ def actualizar_plato(
     descripcion: Optional[str] = None,
     ids_insumos: Optional[list[uuid.UUID]] = None,
 ) -> Optional[Plato]:
-    plato = buscar_plato(id_plato)
-    if plato is None:
-        return None
-    if nombre:
-        plato.nombre = nombre
-    if precio is not None:
-        plato.precio = precio
-    if descripcion:
-        plato.descripcion = descripcion
-    if ids_insumos is not None:
-        plato.ids_insumos = ids_insumos
-    plato.marcar_editado(id_usuario_edicion)
-    return plato
+    session = get_session()
+    try:
+        plato = session.query(Plato).filter_by(id_plato=id_plato).first()
+        if plato is None:
+            return None
+        if nombre:
+            plato.nombre = nombre
+        if precio is not None:
+            plato.precio = precio
+        if descripcion:
+            plato.descripcion = descripcion
+        if ids_insumos is not None:
+            insumos = (
+                session.query(Inventario)
+                .filter(Inventario.id_insumo.in_(ids_insumos))
+                .all()
+            )
+            plato.insumos = insumos
+        plato.marcar_editado(id_usuario_edicion)
+        session.commit()
+        session.refresh(plato)
+        _ = plato.insumos
+        return plato
+    finally:
+        session.close()
 
 
 def eliminar_plato(id_plato: uuid.UUID) -> bool:
-    plato = buscar_plato(id_plato)
-    if plato is None:
-        return False
-    platos.remove(plato)
-    return True
+    session = get_session()
+    try:
+        plato = session.query(Plato).filter_by(id_plato=id_plato).first()
+        if plato is None:
+            return False
+        session.delete(plato)
+        session.commit()
+        return True
+    finally:
+        session.close()
