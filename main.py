@@ -1,6 +1,9 @@
 import uuid
 
-from src.database.connection import Base, get_session
+
+from src.database.connection import Base, get_session, engine
+
+
 from src.crud.empleado_crud import EmpleadoCRUD
 from src.crud.Pedido_crud import PedidoCRUD
 from src.crud.Detalle_Pedido_crud import DetallePedidoCRUD
@@ -8,6 +11,7 @@ from src.crud.Factura_crud import FacturaCRUD
 
 from src.crud import usuario_crud, cliente_crud, mesa_crud, reserva_crud
 from src.crud import plato_crud, menu_crud, inventario_crud, domicilio_crud
+from src.seeds.seed import ejecutar_seeds
 
 # INSTANCIAS DE LOS CRUD
 db = get_session()
@@ -29,34 +33,6 @@ def obtener_uuid(mensaje):
             return uuid.UUID(input(mensaje).strip())
         except ValueError:
             print("El ID ingresado no es válido.")
-
-
-def cargar_datos_semilla():
-    """
-    Crea el primer empleado y usuario administrador del sistema.
-    Rompe la dependencia circular: sin un usuario no hay login,
-    y sin login no se puede crear un usuario. id_usuario_creacion
-    queda en None solo aquí, porque nadie más existía todavía
-    para haber creado este primer registro.
-    """
-    admin_empleado = empleado_crud.crear(
-        nombre="Administrador",
-        telefono="3000000000",
-        correo="admin@restaurante.com",
-        cargo="admin",
-        id_usuario_creacion=None,
-    )
-    usuario_crud.crear_usuario(
-        nombre_usuario="admin",
-        primer_nombre="Administrador",
-        segundo_nombre="",
-        primer_apellido="Sistema",
-        segundo_apellido="",
-        clave="admin123",
-        id_empleado=admin_empleado.id_empleado,
-        id_usuario_creacion=None,
-    )
-    print("Datos semilla cargados. Usuario inicial -> usuario: admin | clave: admin123")
 
 
 def pantalla_login():
@@ -1170,7 +1146,9 @@ def menu_principal():
             print("\nOpción no válida.")
 
 
+Base.metadata.create_all(bind=engine)
+
 if __name__ == "__main__":
-    cargar_datos_semilla()
+    ejecutar_seeds(db)
     pantalla_login()
     menu_principal()
