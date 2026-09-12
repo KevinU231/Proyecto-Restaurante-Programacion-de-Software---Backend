@@ -19,8 +19,12 @@ class DetallePedido(Base):
     cantidad: Mapped[int] = mapped_column()
     precio_unitario: Mapped[float] = mapped_column(Numeric(precision=10, scale=2))
     subtotal: Mapped[float] = mapped_column(Numeric(precision=10, scale=2))
-    id_usuario_creacion: Mapped[Optional[uuid.UUID]] = mapped_column(nullable=True)
-    id_usuario_edicion: Mapped[Optional[uuid.UUID]] = mapped_column(nullable=True)
+    id_usuario_creacion: Mapped[Optional[uuid.UUID]] = mapped_column(
+        ForeignKey("usuarios.id_usuario"), nullable=True
+    )
+    id_usuario_edicion: Mapped[Optional[uuid.UUID]] = mapped_column(
+        ForeignKey("usuarios.id_usuario"), nullable=True
+    )
     fecha_creacion: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     fecha_edicion: Mapped[Optional[datetime]] = mapped_column(DateTime)
 
