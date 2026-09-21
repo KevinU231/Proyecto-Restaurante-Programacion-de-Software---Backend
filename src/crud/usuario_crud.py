@@ -79,7 +79,14 @@ def iniciar_sesion(nombre_usuario: str, clave: str):
 
 
 def actualizar_usuario(
-    id_usuario, id_usuario_edicion, nombre_usuario=None, primer_nombre=None, clave=None
+    id_usuario,
+    id_usuario_edicion,
+    nombre_usuario=None,
+    primer_nombre=None,
+    segundo_nombre=None,
+    primer_apellido=None,
+    segundo_apellido=None,
+    clave=None,
 ):
     session = get_session()
     try:
@@ -90,6 +97,12 @@ def actualizar_usuario(
             usuario.nombre_usuario = nombre_usuario
         if primer_nombre:
             usuario.primer_nombre = primer_nombre
+        if segundo_nombre is not None:
+            usuario.segundo_nombre = segundo_nombre
+        if primer_apellido:
+            usuario.primer_apellido = primer_apellido
+        if segundo_apellido is not None:
+            usuario.segundo_apellido = segundo_apellido
         if clave:
             usuario.clave = clave
         marcar_editado(usuario, id_usuario_edicion)
