@@ -1,5 +1,6 @@
 import uuid
 
+from src.entities.mesa import Mesa
 from src.database.connection import get_session
 from src.entities.reserva import Reserva
 from src.crud.usuario_crud import marcar_editado
@@ -26,6 +27,12 @@ def crear_reserva(
             id_usuario_creacion=id_usuario_creacion,
         )
         session.add(reserva)
+
+        # Marca la mesa como reservada
+        mesa = session.query(Mesa).filter_by(id_mesa=id_mesa).first()
+        if mesa:
+            mesa.estado = "reservada"
+
         session.commit()
         session.refresh(reserva)
         return reserva
