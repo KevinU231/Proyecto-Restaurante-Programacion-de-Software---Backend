@@ -5,6 +5,10 @@ from src.api.usuarios import usuarios_router
 from src.api.clientes import clientes_router
 from src.api.mesas import mesas_router
 from src.api.reservas import reservas_router
+from src.api.empleados import empleados_router
+from src.api.pedidos import pedidos_router
+from src.api.detalle_pedidos import detalles_pedido_router
+from src.api.facturas import facturas_router
 
 app = FastAPI(
     title="API Restaurante - Programacion de Software",
@@ -23,6 +27,10 @@ app.include_router(usuarios_router)
 app.include_router(clientes_router)
 app.include_router(mesas_router)
 app.include_router(reservas_router)
+app.include_router(empleados_router)
+app.include_router(pedidos_router)
+app.include_router(detalles_pedido_router)
+app.include_router(facturas_router)
 
 
 @app.get("/")
