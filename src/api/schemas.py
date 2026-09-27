@@ -379,3 +379,184 @@ class FacturaList(BaseModel):
     data: List[FacturaRead]
     status: int
     message: str
+
+# INVENTARIO
+class InventarioCreate(BaseModel):
+    nombre_insumo: str
+    cantidad: float
+    unidad_medida: str
+    id_usuario_creacion: UUID
+
+
+class InventarioUpdate(BaseModel):
+    id_usuario_edicion: UUID
+    nombre_insumo: Optional[str] = None
+    cantidad: Optional[float] = None
+    unidad_medida: Optional[str] = None
+
+
+class InventarioRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id_insumo: UUID
+    nombre_insumo: str
+    cantidad: float
+    unidad_medida: str
+
+
+class InventarioPost(BaseModel):
+    data: InventarioRead
+    status: int
+    message: str
+
+
+class InventarioPut(BaseModel):
+    data: InventarioRead
+    status: int
+    message: str
+
+
+class InventarioList(BaseModel):
+    data: List[InventarioRead]
+    status: int
+    message: str
+
+
+# PLATO
+class PlatoCreate(BaseModel):
+    nombre: str
+    precio: float
+    descripcion: str = ""
+    ids_insumos: List[UUID] = []
+    id_usuario_creacion: UUID
+
+
+class PlatoUpdate(BaseModel):
+    id_usuario_edicion: UUID
+    nombre: Optional[str] = None
+    precio: Optional[float] = None
+    descripcion: Optional[str] = None
+    ids_insumos: Optional[List[UUID]] = None
+
+
+class PlatoSimple(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id_plato: UUID
+    nombre: str
+    precio: float
+    descripcion: str
+
+
+class PlatoRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id_plato: UUID
+    nombre: str
+    precio: float
+    descripcion: str
+    insumos: List[InventarioRead] = []
+
+
+class PlatoPost(BaseModel):
+    data: PlatoRead
+    status: int
+    message: str
+
+
+class PlatoPut(BaseModel):
+    data: PlatoRead
+    status: int
+    message: str
+
+
+class PlatoList(BaseModel):
+    data: List[PlatoRead]
+    status: int
+    message: str
+
+
+# MENU
+class MenuCreate(BaseModel):
+    nombre: str
+    ids_platos: List[UUID] = []
+    id_usuario_creacion: UUID
+    descripcion: str = ""
+
+
+class MenuUpdate(BaseModel):
+    id_usuario_edicion: UUID
+    nombre: Optional[str] = None
+    ids_platos: Optional[List[UUID]] = None
+    descripcion: Optional[str] = None
+
+
+class MenuRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id_menu: UUID
+    nombre: str
+    descripcion: str
+    platos: List[PlatoSimple] = []
+
+
+class MenuPost(BaseModel):
+    data: MenuRead
+    status: int
+    message: str
+
+
+class MenuPut(BaseModel):
+    data: MenuRead
+    status: int
+    message: str
+
+
+class MenuList(BaseModel):
+    data: List[MenuRead]
+    status: int
+    message: str
+
+
+# DOMICILIO
+class DomicilioCreate(BaseModel):
+    id_cliente: UUID
+    direccion_entrega: str
+    ids_platos: List[UUID] = []
+    id_usuario_creacion: UUID
+    estado: str = "pendiente"
+
+
+class DomicilioUpdate(BaseModel):
+    id_usuario_edicion: UUID
+    direccion_entrega: Optional[str] = None
+    ids_platos: Optional[List[UUID]] = None
+    estado: Optional[str] = None
+
+
+class DomicilioRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id_domicilio: UUID
+    id_cliente: UUID
+    direccion_entrega: str
+    estado: str
+    platos: List[PlatoSimple] = []
+
+
+class DomicilioPost(BaseModel):
+    data: DomicilioRead
+    status: int
+    message: str
+
+
+class DomicilioPut(BaseModel):
+    data: DomicilioRead
+    status: int
+    message: str
+
+
+class DomicilioList(BaseModel):
+    data: List[DomicilioRead]
+    status: int
+    message: str
